@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Kinect</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item row="0" column="0">
+     <widget class="QMdiArea" name="mdiArea"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionDraw_Skeletons"/>
+   </widget>
+   <widget class="QMenu" name="menuRecord">
+    <property name="title">
+     <string>Actions</string>
+    </property>
+    <addaction name="actionCalibrate"/>
+    <addaction name="actionRecord"/>
+   </widget>
+   <widget class="QMenu" name="menuStreams">
+    <property name="title">
+     <string>Streams</string>
+    </property>
+    <addaction name="actionStream_Manager"/>
+    <addaction name="separator"/>
+    <addaction name="actionKinectStream1"/>
+    <addaction name="actionKinectStream2"/>
+    <addaction name="separator"/>
+    <addaction name="actionVideoStream"/>
+    <addaction name="actionImageStream"/>
+   </widget>
+   <widget class="QMenu" name="menuMode">
+    <property name="title">
+     <string>Mode</string>
+    </property>
+    <addaction name="actionModeNone"/>
+    <addaction name="actionModeMeasure"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuStreams"/>
+   <addaction name="menuView"/>
+   <addaction name="menuMode"/>
+   <addaction name="menuRecord"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="separator"/>
+  </widget>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionDraw_Skeletons">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Draw Skeletons</string>
+   </property>
+  </action>
+  <action name="actionKinect_1">
+   <property name="text">
+    <string>Kinect 1</string>
+   </property>
+  </action>
+  <action name="actionColor">
+   <property name="text">
+    <string>Color</string>
+   </property>
+  </action>
+  <action name="actionDepth">
+   <property name="text">
+    <string>Depth</string>
+   </property>
+  </action>
+  <action name="actionColor_Depth">
+   <property name="text">
+    <string>Color + Depth</string>
+   </property>
+  </action>
+  <action name="actionColor_2">
+   <property name="text">
+    <string>Color</string>
+   </property>
+  </action>
+  <action name="actionDepth_2">
+   <property name="text">
+    <string>Depth</string>
+   </property>
+  </action>
+  <action name="actionColor_Depth_2">
+   <property name="text">
+    <string>Color + Depth</string>
+   </property>
+  </action>
+  <action name="actionRecord">
+   <property name="text">
+    <string>Record</string>
+   </property>
+  </action>
+  <action name="actionKinect_2">
+   <property name="text">
+    <string>Kinect 2</string>
+   </property>
+  </action>
+  <action name="actionVideo_Stream">
+   <property name="text">
+    <string>Video Stream</string>
+   </property>
+  </action>
+  <action name="actionFixed_Image_Stream">
+   <property name="text">
+    <string>Fixed Image Stream</string>
+   </property>
+  </action>
+  <action name="actionKinectStream1">
+   <property name="text">
+    <string>Kinect 1</string>
+   </property>
+  </action>
+  <action name="actionKinectStream2">
+   <property name="text">
+    <string>Kinect 2</string>
+   </property>
+  </action>
+  <action name="actionVideoStream">
+   <property name="text">
+    <string>Video Stream</string>
+   </property>
+  </action>
+  <action name="actionImageStream">
+   <property name="text">
+    <string>Fixed Image Stream</string>
+   </property>
+  </action>
+  <action name="actionCalibrate">
+   <property name="text">
+    <string>Calibrate</string>
+   </property>
+  </action>
+  <action name="actionModeNone">
+   <property name="text">
+    <string>None</string>
+   </property>
+  </action>
+  <action name="actionModeMeasure">
+   <property name="text">
+    <string>Measure</string>
+   </property>
+  </action>
+  <action name="actionStream_Manager">
+   <property name="text">
+    <string>Stream Manager</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>actionKinectStream1</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>openKinectWindows1()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>mdiArea</sender>
+   <signal>subWindowActivated(QMdiSubWindow*)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>changedSubwindow(QMdiSubWindow*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionDraw_Skeletons</sender>
+   <signal>triggered(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>setDrawSkeletons(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRecord</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>openRecorder()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionKinectStream2</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>openKinectWindows2()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVideoStream</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>openVideoStream()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionImageStream</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>openImageStream()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCalibrate</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>calibrate()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionModeMeasure</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>setModeMeasure()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionModeNone</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>setModeNone()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionStream_Manager</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>openStreamManager()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>openKinectWindows1()</slot>
+  <slot>openKinectWindows2()</slot>
+  <slot>setDrawSkeletons(bool)</slot>
+  <slot>changedSubwindow(QMdiSubWindow*)</slot>
+  <slot>openRecorder()</slot>
+  <slot>openVideoStream()</slot>
+  <slot>openImageStream()</slot>
+  <slot>setModeNone()</slot>
+  <slot>setModeMeasure()</slot>
+  <slot>openStreamManager()</slot>
+  <slot>calibrate()</slot>
+ </slots>
+</ui>

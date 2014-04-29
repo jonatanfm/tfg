@@ -1,0 +1,17 @@
+
+bin/
+build/
+
+src/release/
+src/debug/
+
+*.pro.*
+
+Makefile*
+
+*.sln
+*.vcxproj*
+*.suo
+*.sdf
+*.opensdf
+

@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>WidgetRecorder</class>
+ <widget class="QWidget" name="WidgetRecorder">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>488</width>
+    <height>180</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout" rowstretch="0,0" columnstretch="2,3" rowminimumheight="0,0">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetDefaultConstraint</enum>
+   </property>
+   <item row="1" column="0">
+    <layout class="QVBoxLayout" name="listLayout" stretch="0,0">
+     <item>
+      <widget class="QLabel" name="lblStreams">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Streams to record:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QListWidget" name="list"/>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="1">
+    <layout class="QVBoxLayout" name="optionsLayout" stretch="0,0,0,0,0,0">
+     <item>
+      <widget class="QLabel" name="lblFilename">
+       <property name="text">
+        <string>File name template:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="txtFilename"/>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="codecLayout">
+       <item>
+        <widget class="QLabel" name="lblCodec">
+         <property name="text">
+          <string>Video Codec (FourCC) for Color/Depth :</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="txtCodecColor">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Maximum" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>40</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="inputMask">
+          <string notr="true">NNNN</string>
+         </property>
+         <property name="text">
+          <string notr="true">HFYU</string>
+         </property>
+         <property name="maxLength">
+          <number>4</number>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="txtCodecDepth">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Maximum" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>40</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="inputMask">
+          <string notr="true">NNNN</string>
+         </property>
+         <property name="text">
+          <string notr="true">HFYU</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QProgressBar" name="progressBar">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="maximum">
+        <number>1</number>
+       </property>
+       <property name="value">
+        <number>0</number>
+       </property>
+       <property name="textVisible">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QPushButton" name="btnCapture">
+         <property name="text">
+          <string>Capture Frame</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btnRecord">
+         <property name="text">
+          <string>Record</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>btnRecord</sender>
+   <signal>clicked()</signal>
+   <receiver>WidgetRecorder</receiver>
+   <slot>record()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>255</x>
+     <y>25</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>170</x>
+     <y>70</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnCapture</sender>
+   <signal>clicked()</signal>
+   <receiver>WidgetRecorder</receiver>
+   <slot>captureFrame()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>263</x>
+     <y>157</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>243</x>
+     <y>89</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>record()</slot>
+  <slot>captureFrame()</slot>
+ </slots>
+</ui>
