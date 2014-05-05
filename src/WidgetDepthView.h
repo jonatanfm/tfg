@@ -20,7 +20,7 @@ class WidgetDepthView : public WidgetOpenGL
         DataStream::DepthPixel* frame;
 
     public:
-        WidgetDepthView(MainWindow* mainWindow, Ptr<DataStream> stream) :
+        WidgetDepthView(MainWindow& mainWindow, Ptr<DataStream> stream) :
             WidgetOpenGL(mainWindow),
             stream(stream)
         {

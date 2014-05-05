@@ -17,6 +17,21 @@ class Utils
 
     public:
 
+        template<typename T>
+        static std::string matToString(const cv::Mat& mat)
+        {
+            std::string s = "{\n";
+            char buffer[32];
+            for (int i = 0; i < mat.rows; ++i) {
+                for (int j = 0; j < mat.cols; ++j) {
+                    sprintf(buffer, "%.2f", mat.at<T>(i, j));
+                    s += "\t" + std::string(buffer);
+                }
+                s += "\n";
+            }
+            return s + "}\n";
+        }
+
         static void colorFrameToRgb(const DataStream::ColorPixel* frame, cv::Mat& image)
         {
             const DataStream::ColorPixel* src = frame;

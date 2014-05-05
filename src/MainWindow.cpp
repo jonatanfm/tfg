@@ -2,12 +2,30 @@
 
 #include "WidgetColorView.h"
 #include "WidgetDepthView.h"
+#include "WidgetSceneView.h"
 #include "WidgetRecorder.h"
 #include "WidgetStreamManager.h"
 
 #include "Calibrator.h"
+#include "Operation.h"
 
 #include "ModeMeasure.h"
+
+
+
+static MainWindow* instance = nullptr;
+
+// Called when Ptr<DataStream> is deleting its content
+void DataStream::deleting(DataStream* obj)
+{
+    if (instance != nullptr)
+    {
+        qDebug() << "Closing Stream " << obj;
+        instance->closeStream(obj);
+    }
+    qDebug() << "Deleting Stream " << obj;
+}
+
 
 
 template<class T>
@@ -26,6 +44,8 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     drawSkeletons(true)
 {
+    instance = this;
+
     setupUi();
 
     setModeNone();
@@ -35,7 +55,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    
+    // Increment references to the streams, as they will be decreased
+    // when they are released, but they are meant to be weak references
+    for (int i = 0; i < int(streams.size()); ++i) {
+        if (streams[i] != nullptr) streams[i].addref();
+    }
+
+    if (instance == this) instance = nullptr;
 }
 
 void MainWindow::initialize()
@@ -54,9 +80,7 @@ void MainWindow::initialize()
                     if (str == "fixed") {
                         std::string sColor, sDepth, sSkeleton;
                         line >> sColor >> sDepth >> sSkeleton;
-                        Ptr<DataStream> stream(new FixedFrameStream(sColor, sDepth, sSkeleton));
-                        streams.push_back(stream);
-                        openStreamWindows(streams.size() - 1);
+                        addStream(new FixedFrameStream(sColor, sDepth, sSkeleton));
                     }
                 }
             }
@@ -148,11 +172,60 @@ void MainWindow::changedSubwindow(QMdiSubWindow* /*win*/)
 }
 
 
-void MainWindow::closeStream(int i)
+int MainWindow::findStreamIndex(const Ptr<DataStream>& stream)
 {
-    if (i < int(streams.size())) {
-        streams[i] = nullptr;
+    for (int i = 0; i < int(streams.size()); ++i) {
+        if (streams[i] == stream) return i;
     }
+    return -1;
+}
+
+bool MainWindow::closeStream(int i)
+{
+    if (i >= 0 && i < int(streams.size())) {
+        streams[i] = nullptr;
+        updateStreamManager();
+        return true;
+    }
+    return false;
+}
+
+
+bool MainWindow::closeStream(DataStream* stream)
+{
+    for (int i = 0; i < int(streams.size()); ++i) {
+        if (streams[i] == stream) {
+            streams[i] = nullptr;
+            updateStreamManager();
+            return true;
+        }
+    }
+    return false;
+}
+
+int MainWindow::addStream(const Ptr<DataStream>& stream)
+{
+    if (stream == nullptr) return -1;
+
+    int idx = -1;
+    for (int i = 0; i < int(streams.size()); ++i) {
+        if (streams[i] == stream) return i;
+        if (idx == -1 && streams[i] == nullptr) idx = i;
+    }
+
+    if (idx != -1) streams[idx] = stream;
+    else {
+        idx = int(streams.size());
+        streams.push_back(stream);
+    }
+
+    openStreamWindows(idx);
+
+    *stream.refcount -= 1; // Convert the reference in "streams" to a weak reference
+
+    updateStreamManager();
+
+    return idx;
 }
 
 void MainWindow::openStreamWindows(int i)
@@ -165,13 +238,13 @@ void MainWindow::openStreamWindows(int i)
 
     if (stream->hasColor())
     {
-        WidgetColorView* colorView = new WidgetColorView(this, stream);
+        WidgetColorView* colorView = new WidgetColorView(*this, stream);
         addSubwindow(colorView, "#" + QString::number(i) + " - " + name + " - Color");
     }
 
     if (stream->hasDepth())
     {
-        WidgetDepthView* depthView = new WidgetDepthView(this, stream);
+        WidgetDepthView* depthView = new WidgetDepthView(*this, stream);
         addSubwindow(depthView, "#" + QString::number(i) + " - " + name + " - Depth");
     }
 }
@@ -180,21 +253,21 @@ void MainWindow::openKinect(int i)
 {
     if (kinectManager.getSensorCount() <= i) return;
 
-    Ptr<KinectStream> stream = kinectManager.getStream(i);
-    if (stream == nullptr) return;
-
-    for (int j = 0; j < int(streams.size()); ++j) {
-        if (streams[j] == stream) return;
-    }
-
-    streams.push_back(stream);
-    openStreamWindows(streams.size() - 1);
+    addStream(kinectManager.getStream(i));
 }
 
 void MainWindow::openRecorder()
 {
-    addSubwindow(new WidgetRecorder(*this), "Recorder");
+    WidgetRecorder* w = findSubwindowByType<WidgetRecorder>(mdiArea);
+    if (w == nullptr) addSubwindow(new WidgetRecorder(*this), "Recorder");
 }
+
+void MainWindow::openSceneView()
+{
+    WidgetSceneView* w = findSubwindowByType<WidgetSceneView>(mdiArea);
+    if (w == nullptr) addSubwindow(new WidgetSceneView(*this), "Scene View");
+}
+
 
 void MainWindow::openStreamManager()
 {
@@ -208,6 +281,12 @@ void MainWindow::openStreamManager()
         w->refresh();
         addSubwindow(w, "Stream Manager");
     }
+}
+
+void MainWindow::updateStreamManager()
+{
+    WidgetStreamManager* w = findSubwindowByType<WidgetStreamManager>(mdiArea);
+    if (w != nullptr) w->refresh();
 }
 
 void MainWindow::openImageStream()
@@ -229,10 +308,7 @@ void MainWindow::openImageStream()
             else color = list[i];
         }
 
-        Ptr<DataStream> stream(new FixedFrameStream(color.toStdString(), depth.toStdString(), skeleton.toStdString()));
-        streams.push_back(stream);
-
-        openStreamWindows(streams.size() - 1);
+        addStream(new FixedFrameStream(color.toStdString(), depth.toStdString(), skeleton.toStdString()));
     }
 }
 
@@ -247,17 +323,64 @@ void MainWindow::openRecordedStream()
     }
 }
 
-
-void MainWindow::calibrate()
+void MainWindow::setStatusText(QString text)
 {
-    if (calibrator != nullptr) return;
-
-    //calibrator = new Calibrator();
-    //calibrator->addStream(streams[0]);
-    ////calibrator->addStream(streams[1]);
-    //calibrator->calibrateStream();
+    statusBar->showMessage(text);
+    //statusBarText->setText(QString::fromStdString(text));
 }
 
+void MainWindow::setStatusProgress(int progress, int max)
+{
+    statusBarProgress->setMaximum(max);
+    statusBarProgress->setValue(progress);
+}
+
+void MainWindow::operationFinished()
+{
+    statusBar->showMessage("Finished");
+    setStatusProgress(0, 1);
+    statusBarProgress->setEnabled(false);
+
+    Operation* op = currentOperation->getOperation();
+    
+    Calibrator* calib = dynamic_cast<Calibrator*>(op);
+    if (calib != nullptr && calib->hasExtrinsicParams()) { // Was a calibration?
+        auto& streams = calib->getStreams();
+        auto& params = calib->getExtrinsicParams();
+        int i = findStreamIndex(streams[0]);
+        if (i != -1) {
+            for (size_t k = 1; k < streams.size(); ++k) {
+                int j = findStreamIndex(streams[k]);
+                if (j != -1) {
+                    calibration.add(i, j, params[j - 1]);
+                }
+            }
+        }
+    }
+
+    currentOperation = nullptr;
+}
+
+
+void MainWindow::startOperation(Operation* op, std::function< void() > callback)
+{
+    if (currentOperation != nullptr) {
+        delete op;
+        return;
+    }
+
+    statusBarProgress->setEnabled(true);
+    setStatusProgress(0, 0);
+    setStatusText("Executing...");
+    
+    connect(op, SIGNAL(statusChanged(QString)), this, SLOT(setStatusText(QString)));
+    connect(op, SIGNAL(progressChanged(int, int)), this, SLOT(setStatusProgress(int, int)));
+
+    AsyncOperation* asyncOp = new AsyncOperation(op, callback);
+    currentOperation = asyncOp;
+    connect(asyncOp, SIGNAL(finished()), this, SLOT(operationFinished()));
+    asyncOp->start();
+}
 
 
 #pragma region Setup UI
@@ -298,14 +421,17 @@ void MainWindow::setupUi()
 
     MENU("View");
     {
-        ACTION_2("Draw Skeletons", triggered(bool), setDrawSkeletons(bool));
-        action->setCheckable(true);
-        action->setChecked(true);
+        ACTION("Scene View", openSceneView());
+
+        menu->addSeparator();
+
+        ACTION_2("Toggle Draw Skeletons", triggered(bool), setDrawSkeletons(bool));
+        //action->setCheckable(true);
+        //action->setChecked(true);
     }
 
     MENU("Actions");
     {
-        ACTION("Calibrate", calibrate());
         ACTION("Record", openRecorder());
     }
 
@@ -320,8 +446,8 @@ void MainWindow::setupUi()
 
         menu->addSeparator();
 
-        ACTION("Recorded Stream...", openRecordedStream());
         ACTION("Fixed Image Stream...", openImageStream());
+        ACTION("Recorded Stream...", openRecordedStream());
     }
 
     menuModes = MENU("Mode");
@@ -332,8 +458,15 @@ void MainWindow::setupUi()
 
     setMenuBar(menubar);
 
-    statusbar = new QStatusBar(this);
-    setStatusBar(statusbar);
+    statusBar = new QStatusBar(this);
+    statusBarText = new QLabel();
+    statusBarProgress = new QProgressBar();
+    statusBarProgress->setTextVisible(true);
+    statusBarProgress->setFixedSize(QSize(192, 16));
+    statusBarProgress->setDisabled(true);
+    statusBar->addPermanentWidget(statusBarText);
+    statusBar->addPermanentWidget(statusBarProgress);
+    setStatusBar(statusBar);
 
     //QToolBar* toolBar = new QToolBar(this);
     //toolBar->addSeparator();

@@ -45,7 +45,9 @@ HEADERS += \
     KinectStream.h \
     FixedFrameStream.h \
     RecordedStream.h \
+    Calibration.h \
     Calibrator.h \
+    Operation.h \
     Mode.h \
     ModeMeasure.h \
     MainWindow.h \
@@ -53,6 +55,7 @@ HEADERS += \
     WidgetOpenGL.h \
     WidgetColorView.h \
     WidgetDepthView.h \
+    WidgetSceneView.h \
     WidgetRecorder.h \
     WidgetStreamManager.h
 

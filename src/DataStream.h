@@ -152,6 +152,9 @@ class DataStream : public cv::VideoCapture
 
     public:
 
+        static void deleting(DataStream* stream); // Implemented in MainWindow.cpp, do not call manually
+
+
         virtual bool grab() override
         {
             return true;
@@ -203,5 +206,18 @@ class DataStream : public cv::VideoCapture
         }
 
 };
+
+
+// Override OpenCV's Ptr deleter for DataStreams, to close them
+// and remove them from MainWindow's "streams" vector, if it exists
+template<> inline void Ptr<DataStream>::delete_obj()
+{
+    if (obj != nullptr)
+    {
+        DataStream::deleting(obj);
+        delete obj;
+    }
+}
+
 
 #endif

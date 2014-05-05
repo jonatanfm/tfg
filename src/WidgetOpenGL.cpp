@@ -4,7 +4,7 @@
 
 #include "MainWindow.h"
 
-WidgetOpenGL::WidgetOpenGL(MainWindow* mainWindow, QWidget *parent) :
+WidgetOpenGL::WidgetOpenGL(MainWindow& mainWindow, QWidget *parent) :
     QGLWidget(parent),
     mainWindow(mainWindow),
     type(OtherView)
@@ -65,24 +65,25 @@ void WidgetOpenGL::paintGL()
 
 void WidgetOpenGL::timerEvent(QTimerEvent*)
 {
+    onTick();
     updateGL();
 }
 
 void WidgetOpenGL::mousePressEvent(QMouseEvent* ev)
 {
-    Mode* mode = mainWindow->getMode();
+    Mode* mode = mainWindow.getMode();
     if (mode != nullptr) mode->mousePressEvent(this, ev);
 }
 
 void WidgetOpenGL::mouseReleaseEvent(QMouseEvent* ev)
 {
-    Mode* mode = mainWindow->getMode();
+    Mode* mode = mainWindow.getMode();
     if (mode != nullptr) mode->mouseReleaseEvent(this, ev);
 }
 
 void WidgetOpenGL::moveEvent(QMoveEvent* ev)
 {
-    Mode* mode = mainWindow->getMode();
+    Mode* mode = mainWindow.getMode();
     if (mode != nullptr) mode->moveEvent(this, ev);
 }
 

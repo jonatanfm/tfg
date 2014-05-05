@@ -29,7 +29,7 @@ class WidgetOpenGL : public QGLWidget
             OtherView
         };
 
-        explicit WidgetOpenGL(MainWindow* mainWindow, QWidget *parent = 0);
+        explicit WidgetOpenGL(MainWindow& mainWindow, QWidget *parent = 0);
         ~WidgetOpenGL();
 
         bool hasOverlay(const std::string& name);
@@ -47,7 +47,7 @@ class WidgetOpenGL : public QGLWidget
 
     protected:
 
-        MainWindow* mainWindow;
+        MainWindow& mainWindow;
 
         Type type;
 
@@ -59,6 +59,11 @@ class WidgetOpenGL : public QGLWidget
         virtual bool render()
         {
             return false;
+        }
+
+        virtual void onTick()
+        {
+
         }
 
         void mousePressEvent(QMouseEvent* ev) override;

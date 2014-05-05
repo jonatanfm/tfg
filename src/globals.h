@@ -20,10 +20,12 @@
 
 #include <cstdio>
 #include <cstdint>
+#include <cmath>
 
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 #include <vector>
 #include <memory>
 
@@ -59,15 +61,40 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #ifdef _DEBUG
-    #pragma comment(lib, "opencv_core248d")
-    #pragma comment(lib, "opencv_imgproc248d")
-    #pragma comment(lib, "opencv_calib3d248d")
-    #pragma comment(lib, "opencv_highgui248d")
+    #pragma comment(lib, "opencv_core249d")
+    #pragma comment(lib, "opencv_imgproc249d")
+    #pragma comment(lib, "opencv_calib3d249d")
+    #pragma comment(lib, "opencv_highgui249d")
+
+
+    // If static libs
+    
+    /*#pragma comment(lib, "opencv_contrib249d")
+    #pragma comment(lib, "opencv_legacy249d")
+    #pragma comment(lib, "opencv_ml249d")
+    #pragma comment(lib, "opencv_objdetect249d")
+    #pragma comment(lib, "opencv_calib3d249d")
+    #pragma comment(lib, "opencv_video249d")
+    #pragma comment(lib, "opencv_features2d249d")
+    #pragma comment(lib, "opencv_highgui249d")
+    #pragma comment(lib, "opencv_flann249d")
+    #pragma comment(lib, "opencv_imgproc249d")
+    #pragma comment(lib, "opencv_core249d")
+
+    #pragma comment(lib, "libjpegd")
+    #pragma comment(lib, "libpngd")
+    #pragma comment(lib, "libtiffd")
+    #pragma comment(lib, "libjasperd")
+    #pragma comment(lib, "IlmImfd")
+
+    #pragma comment(lib, "zlibd")*/
+
+
 #else
-    #pragma comment(lib, "opencv_core248")
-    #pragma comment(lib, "opencv_imgproc248")
-    #pragma comment(lib, "opencv_calib3d248")
-    #pragma comment(lib, "opencv_highgui248")
+    #pragma comment(lib, "opencv_core249")
+    #pragma comment(lib, "opencv_imgproc249")
+    #pragma comment(lib, "opencv_calib3d249")
+    #pragma comment(lib, "opencv_highgui249")
 #endif
 
 using cv::Ptr;
@@ -117,6 +144,12 @@ using cv::Ptr;
 #ifndef MIN
     #define MIN(x, y) (((x) < (y))? (x) : (y))
 #endif
+
+
+const float PI = 3.14159265358979323846f;
+
+const float DEG2RAD = PI / 180.0f;
+const float RAD2DEG = 180.0f / PI;
 
 
 #endif

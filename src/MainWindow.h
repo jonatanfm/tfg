@@ -17,10 +17,15 @@
 #include "SubWindow.h"
 #include "WidgetOpenGL.h"
 
+#include "Calibration.h"
+
 #include "Mode.h"
 
 class App;
 class Calibrator;
+
+class AsyncOperation;
+class Operation;
 
 class MainWindow : public QMainWindow
 {
@@ -29,6 +34,7 @@ class MainWindow : public QMainWindow
     friend class StreamListModel;
 
     public:
+
         explicit MainWindow(QWidget *parent = 0);
         ~MainWindow();
 
@@ -42,9 +48,14 @@ class MainWindow : public QMainWindow
             return mode;
         }
 
-        const std::vector< Ptr<DataStream> >& getStreams()
+        const std::vector< Ptr<DataStream> >& getStreams() const
         {
             return streams;
+        }
+
+        const SystemCalibration& getCalibration() const
+        {
+            return calibration;
         }
 
         bool getDrawSkeletons() const
@@ -52,7 +63,13 @@ class MainWindow : public QMainWindow
             return drawSkeletons;
         }
 
-        void closeStream(int i);
+        int addStream(const Ptr<DataStream>& stream);
+
+        bool closeStream(DataStream* stream);
+
+        bool closeStream(int i);
+
+        void startOperation(Operation* op, std::function< void() > callback = nullptr);
 
     private:
 
@@ -60,14 +77,20 @@ class MainWindow : public QMainWindow
 
         std::vector< Ptr<DataStream> > streams;
 
+        SystemCalibration calibration;
+
         Ptr<Mode> mode;
 
-        Ptr<Calibrator> calibrator;
+        Ptr<AsyncOperation> currentOperation;
 
-        QStatusBar* statusbar;
+        QStatusBar* statusBar;
+        QLabel* statusBarText;
+        QProgressBar* statusBarProgress;
+
         QMdiArea* mdiArea;
 
         QMenu* menuModes;
+
 
         bool drawSkeletons;
 
@@ -83,6 +106,9 @@ class MainWindow : public QMainWindow
 
         void setMode(int index, Mode* mode);
 
+        int findStreamIndex(const Ptr<DataStream>& stream);
+
+
     public slots:
 
         void exit();
@@ -94,9 +120,13 @@ class MainWindow : public QMainWindow
 
         void openStreamManager();
 
+        void updateStreamManager();
+
         void openRecordedStream();
 
         void openImageStream();
+
+        void openSceneView();
 
         void changedSubwindow(QMdiSubWindow* win);
 
@@ -105,9 +135,11 @@ class MainWindow : public QMainWindow
         void setModeNone();
         void setModeMeasure();
 
-        void calibrate();
-
+        void setStatusText(QString);
+        void setStatusProgress(int, int);
+        void operationFinished();
 
 };
+
 
 #endif

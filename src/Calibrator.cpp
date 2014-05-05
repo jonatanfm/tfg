@@ -1,151 +1,9 @@
 
 #include "Calibrator.h"
 
-using namespace cv;
+#include "Utils.h"
 
-
-#pragma region OPENCV DEBUG
-
-static void collectCalibrationData2(InputArrayOfArrays objectPoints,
-    InputArrayOfArrays imagePoints1,
-    InputArrayOfArrays imagePoints2,
-    Mat& objPtMat, Mat& imgPtMat1, Mat* imgPtMat2,
-    Mat& npoints)
-{
-    int nimages = (int)objectPoints.total();
-    int i, j = 0, ni = 0, total = 0;
-
-
-    int N = (int)imagePoints1.total();
-    CV_Assert(nimages > 0);
-    CV_Assert(nimages == (int)imagePoints1.total());
-    CV_Assert((!imgPtMat2 || nimages == (int)imagePoints2.total()));
-
-    for (i = 0; i < nimages; i++)
-    {
-        auto& x = objectPoints.getMat(i); // PETA AQUI
-        ni = x.checkVector(3, CV_32F);
-        CV_Assert(ni >= 0);
-        total += ni;
-    }
-
-    npoints.create(1, (int)nimages, CV_32S);
-    objPtMat.create(1, (int)total, CV_32FC3);
-    imgPtMat1.create(1, (int)total, CV_32FC2);
-    Point2f* imgPtData2 = 0;
-
-    if (imgPtMat2)
-    {
-        imgPtMat2->create(1, (int)total, CV_32FC2);
-        imgPtData2 = imgPtMat2->ptr<Point2f>();
-    }
-
-    Point3f* objPtData = objPtMat.ptr<Point3f>();
-    Point2f* imgPtData1 = imgPtMat1.ptr<Point2f>();
-
-    for (i = 0; i < nimages; i++, j += ni)
-    {
-        Mat objpt = objectPoints.getMat(i);
-        Mat imgpt1 = imagePoints1.getMat(i);
-        ni = objpt.checkVector(3, CV_32F);
-        int ni1 = imgpt1.checkVector(2, CV_32F);
-        CV_Assert(ni > 0 && ni == ni1);
-        npoints.at<int>(i) = ni;
-        memcpy(objPtData + j, objpt.data, ni*sizeof(objPtData[0]));
-        memcpy(imgPtData1 + j, imgpt1.data, ni*sizeof(imgPtData1[0]));
-
-        if (imgPtData2)
-        {
-            Mat imgpt2 = imagePoints2.getMat(i);
-            int ni2 = imgpt2.checkVector(2, CV_32F);
-            CV_Assert(ni == ni2);
-            memcpy(imgPtData2 + j, imgpt2.data, ni*sizeof(imgPtData2[0]));
-        }
-    }
-}
-
-static Mat prepareCameraMatrix(Mat& cameraMatrix0, int rtype)
-{
-    Mat cameraMatrix = Mat::eye(3, 3, rtype);
-    if (cameraMatrix0.size() == cameraMatrix.size())
-        cameraMatrix0.convertTo(cameraMatrix, rtype);
-    return cameraMatrix;
-}
-
-static Mat prepareDistCoeffs(Mat& distCoeffs0, int rtype)
-{
-    Mat distCoeffs = Mat::zeros(distCoeffs0.cols == 1 ? Size(1, 8) : Size(8, 1), rtype);
-    if (distCoeffs0.size() == Size(1, 4) ||
-        distCoeffs0.size() == Size(1, 5) ||
-        distCoeffs0.size() == Size(1, 8) ||
-        distCoeffs0.size() == Size(4, 1) ||
-        distCoeffs0.size() == Size(5, 1) ||
-        distCoeffs0.size() == Size(8, 1))
-    {
-        Mat dstCoeffs(distCoeffs, Rect(0, 0, distCoeffs0.cols, distCoeffs0.rows));
-        distCoeffs0.convertTo(dstCoeffs, rtype);
-    }
-    return distCoeffs;
-}
-
-
-double customCalibrateCamera(InputArrayOfArrays _objectPoints,
-    InputArrayOfArrays _imagePoints,
-    Size imageSize, InputOutputArray _cameraMatrix, InputOutputArray _distCoeffs,
-    OutputArrayOfArrays _rvecs, OutputArrayOfArrays _tvecs, int flags, TermCriteria criteria)
-{
-    int rtype = CV_64F;
-    Mat cameraMatrix = _cameraMatrix.getMat();
-    cameraMatrix = prepareCameraMatrix(cameraMatrix, rtype);
-    Mat distCoeffs = _distCoeffs.getMat();
-    distCoeffs = prepareDistCoeffs(distCoeffs, rtype);
-    if (!(flags & CALIB_RATIONAL_MODEL))
-        distCoeffs = distCoeffs.rows == 1 ? distCoeffs.colRange(0, 5) : distCoeffs.rowRange(0, 5);
-
-    int    i;
-    size_t nimages = _objectPoints.total();
-    CV_Assert(nimages > 0);
-    Mat objPt, imgPt, npoints, rvecM((int)nimages, 3, CV_64FC1), tvecM((int)nimages, 3, CV_64FC1);
-    collectCalibrationData2(_objectPoints, _imagePoints, noArray(),
-        objPt, imgPt, 0, npoints);
-    CvMat c_objPt = objPt, c_imgPt = imgPt, c_npoints = npoints;
-    CvMat c_cameraMatrix = cameraMatrix, c_distCoeffs = distCoeffs;
-    CvMat c_rvecM = rvecM, c_tvecM = tvecM;
-
-    double reprojErr = cvCalibrateCamera2(&c_objPt, &c_imgPt, &c_npoints, imageSize,
-        &c_cameraMatrix, &c_distCoeffs, &c_rvecM,
-        &c_tvecM, flags, criteria);
-
-    bool rvecs_needed = _rvecs.needed(), tvecs_needed = _tvecs.needed();
-
-    if (rvecs_needed)
-        _rvecs.create((int)nimages, 1, CV_64FC3);
-    if (tvecs_needed)
-        _tvecs.create((int)nimages, 1, CV_64FC3);
-
-    for (i = 0; i < (int)nimages; i++)
-    {
-        if (rvecs_needed)
-        {
-            _rvecs.create(3, 1, CV_64F, i, true);
-            Mat rv = _rvecs.getMat(i);
-            memcpy(rv.data, rvecM.ptr<double>(i), 3 * sizeof(double));
-        }
-        if (tvecs_needed)
-        {
-            _tvecs.create(3, 1, CV_64F, i, true);
-            Mat tv = _tvecs.getMat(i);
-            memcpy(tv.data, tvecM.ptr<double>(i), 3 * sizeof(double));
-        }
-    }
-    cameraMatrix.copyTo(_cameraMatrix);
-    distCoeffs.copyTo(_distCoeffs);
-
-    return reprojErr;
-}
-
-#pragma endregion OPENCV DEBUG
-
+#include "FixedFrameStream.h"
 
 
 bool Calibrator::findPoints(cv::Mat& image, cv::Mat& gray, INOUT cv::vector< cv::vector<cv::Point2f> >& points)
@@ -183,19 +41,34 @@ bool Calibrator::findPoints(cv::Mat& image, cv::Mat& gray, INOUT cv::vector< cv:
 
     points.push_back(corners);
 
-    //drawChessboardCorners(img, chessboard, corners, found);
-
     return true;
 }
 
-void Calibrator::generateChessboardPoints(OUT cv::vector<cv::Point3f>& points, float squareSize)
+void Calibrator::generateChessboardPoints(OUT cv::Mat& points, float squareSize)
+{
+    points.create(cv::Size(3, chessboardSize.width * chessboardSize.height), CV_32F);
+    for (int i = 0; i < chessboardSize.height; ++i) {
+        for (int j = 0; j < chessboardSize.width; ++j) {
+            int idx = i * chessboardSize.width + j;
+            points.at<float>(idx, 0) = squareSize * j;
+            points.at<float>(idx, 1) = squareSize * i;
+            points.at<float>(idx, 2) = 0.0f;
+        }
+    }
+    //int ni = cv::InputArray(points).getMat(0).checkVector(3, CV_32F);
+}
+
+/*void Calibrator::generateChessboardPointsInVector(OUT cv::vector<cv::Point3f>& points, float squareSize)
 {
     for (int i = 0; i < chessboardSize.height; ++i) {
         for (int j = 0; j < chessboardSize.width; ++j) {
             points.push_back(cv::Point3f(squareSize * j, squareSize * i, 0.0f));
         }
     }
-}
+    int ni = cv::InputArray(points).getMat(0).checkVector(3, CV_32F);
+}*/
+
+
 
 void Calibrator::streamCalibration()
 {
@@ -207,13 +80,15 @@ void Calibrator::streamCalibration()
     cv::vector< cv::vector<cv::Point2f> > foundPoints;
 
     // Reference chessboard points
-    cv::vector<cv::Point3f> objectPoints;
+    //cv::vector<cv::Point3f> objectPoints;
+    cv::Mat objectPoints;
     generateChessboardPoints(OUT objectPoints);
 
     // DEBUG
     cv::VideoCapture capture("D:/Lib/opencv/sources/samples/cpp/left%02d.jpg");
 
-    const int targetFrameCount = objectPoints.size();
+    const int targetFrameCount = objectPoints.rows;
+    //const int targetFrameCount = objectPoints.size();
 
     // Main loop - grab and process frames
     int frameCount = 0;
@@ -227,6 +102,7 @@ void Calibrator::streamCalibration()
         if (!findPoints(frame, gray, INOUT foundPoints)) continue;
 
         ++frameCount;
+        progressChanged(frameCount, targetFrameCount);
     }
 
     // Termination criteria for the iterative optimization algorithm
@@ -247,7 +123,7 @@ void Calibrator::streamCalibration()
     // WARNING! objectPoints.size() MUST BE EQUAL TO foundPoints.size()!!
 
     // http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#calibratecamera
-    double rms = customCalibrateCamera(
+    double rms = calibrateCamera(
         objectPoints,
         foundPoints,
         imageSize,
@@ -262,21 +138,23 @@ void Calibrator::streamCalibration()
     intrinsic.reprojectionError = rms;
 }
 
-
 void Calibrator::systemCalibration()
 {
+    statusChanged("Starting callibration...");
+
     // Number of streams to calibrate
     const int N = int(streams.size());
 
     // Reference chessboard points, to use in the calibration
-    cv::vector<cv::Point3f> objectPoints;
+    //cv::vector<cv::Point3f> objectPoints;
+    cv::Mat objectPoints;
     generateChessboardPoints(OUT objectPoints);
 
     // Size of the streams
     cv::Size imageSize(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
 
     // To store the found points, as well as the reference points, for each frame
-    cv::vector< cv::vector<cv::Point3f> > chessboardPoints;
+    cv::vector< cv::Mat > chessboardPoints;
     cv::vector< cv::vector< cv::vector<cv::Point2f> > > foundPoints;
     foundPoints.resize(N);
 
@@ -291,6 +169,8 @@ void Calibrator::systemCalibration()
 
     // Maximum number of frames to run, unless stopped before
     const int MAX_NUM_FRAMES = 10;
+
+    statusChanged("Grabbing frames...");
 
     // Main loop - grab and process frames
     int frameCount = 0;
@@ -319,13 +199,24 @@ void Calibrator::systemCalibration()
         // Add a set of reference points to the vector
         chessboardPoints.push_back(objectPoints);
 
-        /*FixedFrameStream* fis = dynamic_cast<FixedFrameStream*>((DataStream*) stream);
-        if (fis != nullptr) {
-        fis->setColorImage(img);
-        }*/
-
         ++frameCount;
+        progressChanged(frameCount, MAX_NUM_FRAMES);
+
+        #pragma message("TODO: REMOVE THIS DEBUG")
+        if (frameCount == MAX_NUM_FRAMES) {
+            for (i = 0; i < N; ++i) {
+                FixedFrameStream* fis = dynamic_cast<FixedFrameStream*>((DataStream*)streams[i]);
+                if (fis != nullptr) {
+                    cv::Mat debugImg(frames[i]);
+                    drawChessboardCorners(debugImg, chessboardSize, foundPoints[i].back(), true);
+                    fis->setColorImage(debugImg);
+                }
+            }
+        }
     }
+
+    statusChanged("Computing parameters...");
+    progressChanged(0, 0);
 
     // Reset the calibration parameters container
     params.resize(N - 1);

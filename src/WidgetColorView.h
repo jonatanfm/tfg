@@ -19,7 +19,7 @@ class WidgetColorView : public WidgetOpenGL
         DataStream::ColorPixel* frame;
 
     public:
-        WidgetColorView(MainWindow* mainWindow, Ptr<DataStream> stream) :
+        WidgetColorView(MainWindow& mainWindow, Ptr<DataStream> stream) :
             WidgetOpenGL(mainWindow),
             stream(stream)
         {
