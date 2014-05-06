@@ -82,7 +82,7 @@
                 Recorder(stream),
                 buffer(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3)
             {
-                frame = new DataStream::ColorPixel[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
+                frame = DataStream::newColorFrame();
             }
 
             ~ColorRecorder()
@@ -142,43 +142,43 @@
     class DepthRecorder : public Recorder
     {
         public:
-        DepthRecorder(Ptr<DataStream> stream) :
-            Recorder(stream),
-            buffer(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3)
-        {
-            frame = new DataStream::DepthPixel[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
-        }
-
-        ~DepthRecorder()
-        {
-            delete[] frame;
-        }
-
-        bool setupWriter(const QString& file, int fourcc) override
-        {
-            writer.open(
-                (file + ".avi").toStdString(),
-                fourcc,
-                30.0,
-                cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT),
-                true
-            );
-
-            return writer.isOpened();
-        }
-
-        void run() override
-        {
-            DataStream::FrameNum num;
-            while (recording) {
-                if (stream->getDepthFrame(frame, &num)) {
-                    Utils::depthFrameToRgb(frame, buffer);
-                    writer << buffer;
-                }
-                Sleep(10);
+            DepthRecorder(Ptr<DataStream> stream) :
+                Recorder(stream),
+                buffer(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3)
+            {
+                frame = DataStream::newDepthFrame();
             }
-            writer.release();
-        }
+
+            ~DepthRecorder()
+            {
+                delete[] frame;
+            }
+
+            bool setupWriter(const QString& file, int fourcc) override
+            {
+                writer.open(
+                    (file + ".avi").toStdString(),
+                    fourcc,
+                    30.0,
+                    cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT),
+                    true
+                );
+
+                return writer.isOpened();
+            }
+
+            void run() override
+            {
+                DataStream::FrameNum num;
+                while (recording) {
+                    if (stream->getDepthFrame(frame, &num)) {
+                        Utils::depthFrameToRgb(frame, buffer);
+                        writer << buffer;
+                    }
+                    Sleep(10);
+                }
+                writer.release();
+            }
 
         private:
             cv::VideoWriter writer;
@@ -413,7 +413,7 @@ void WidgetRecorder::captureFrame()
 
 void WidgetRecorder::captureColorFrame(Ptr<DataStream> stream, QString filename)
 {
-    DataStream::ColorPixel* frame = new DataStream::ColorPixel[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
+    DataStream::ColorPixel* frame = DataStream::newColorFrame();
     stream->getColorFrame(frame);
 
     cv::Mat img(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3);
@@ -425,7 +425,7 @@ void WidgetRecorder::captureColorFrame(Ptr<DataStream> stream, QString filename)
 
 void WidgetRecorder::captureDepthFrame(Ptr<DataStream> stream, QString filename)
 {
-    DataStream::DepthPixel* frame = new DataStream::DepthPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
+    DataStream::DepthPixel* frame = DataStream::newDepthFrame();
     stream->getDepthFrame(frame);
 
     cv::Mat img(cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT), CV_8UC3);

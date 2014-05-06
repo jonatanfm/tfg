@@ -9,7 +9,7 @@
 #include "DataStream.h"
 #include "WidgetOpenGL.h"
 
-class WidgetColorView : public WidgetOpenGL
+class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
 {
     private:
         Ptr<DataStream> stream;
@@ -27,10 +27,13 @@ class WidgetColorView : public WidgetOpenGL
 
             makeCurrent();
             texture = RenderUtils::createTexture(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
-            frame = new DataStream::ColorPixel[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
+            frame = DataStream::newColorFrame();
         }
 
-        inline Ptr<DataStream> getStream() { return stream; }
+        Ptr<DataStream> getStream() const override
+        {
+            return stream;
+        }
 
         bool render()
         {

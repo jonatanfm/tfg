@@ -3,25 +3,13 @@
 
 #pragma once
 
-#include "DataStream.h"
+#include "AsyncStream.h"
 
-class RecordedStream : public DataStream, private QThread
+class RecordedStream : public AsyncStream
 {
     public:
         RecordedStream(const std::string& colorFile, const std::string& depthFile, const std::string& skeletonFile);
         ~RecordedStream();
-
-        void release() override;
-
-        bool waitForFrame(ColorPixel* colorFrame, DepthPixel* depthFrame, NUI_SKELETON_FRAME* skeletonFrame, FrameNum* frameNum = nullptr) override;
-
-        bool getColorFrame(ColorPixel* data, FrameNum* num = nullptr) override;
-        bool getColorImage(cv::Mat& mat, FrameNum* num = nullptr) override;
-
-        bool getDepthFrame(DepthPixel* data, FrameNum* num = nullptr) override;
-
-        bool getSkeletonFrame(NUI_SKELETON_FRAME& frame, FrameNum* num = nullptr) override;
-
 
 
         void reset()
@@ -63,7 +51,7 @@ class RecordedStream : public DataStream, private QThread
 
         bool hasSkeleton() const override
         {
-            return skeletonFrame.dwFrameNumber != 0;
+            return !skeletonFile.empty();
         }
 
     private:
@@ -80,15 +68,9 @@ class RecordedStream : public DataStream, private QThread
         cv::Mat colorFrame;
         cv::Mat depthFrame;
 
+        ColorPixel* colorBuffer;
+        DepthPixel* depthBuffer;
 
-        NUI_SKELETON_FRAME skeletonFrame;
-
-        QWaitCondition newFrameEvent;
-        QMutex newFrameMutex;
-
-        int currentFrame;
-
-        volatile bool running;
         volatile bool resetting;
         volatile bool paused;
         volatile bool advancing;

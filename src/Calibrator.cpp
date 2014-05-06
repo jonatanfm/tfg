@@ -113,9 +113,11 @@ void Calibrator::streamCalibration()
 
     cv::vector<cv::Mat> rvecs, tvecs;
 
-    intrinsic.cameraMatrix = cv::Mat::zeros(3, 3, CV_32F);
-    intrinsic.cameraMatrix.at<float>(0, 0) = 1;
-    intrinsic.cameraMatrix.at<float>(1, 1) = 1;
+    IntrinsicParams intrinsics;
+
+    intrinsics.cameraMatrix = cv::Mat::zeros(3, 3, CV_32F);
+    intrinsics.cameraMatrix.at<float>(0, 0) = 1;
+    intrinsics.cameraMatrix.at<float>(1, 1) = 1;
 
     //intrinsic.distCoeffs = cv::Mat::zeros(3, 3, CV_64F);
 
@@ -127,15 +129,17 @@ void Calibrator::streamCalibration()
         objectPoints,
         foundPoints,
         imageSize,
-        INOUT intrinsic.cameraMatrix,
-        INOUT intrinsic.distCoeffs,
+        INOUT intrinsics.cameraMatrix,
+        INOUT intrinsics.distCoeffs,
         OUT rvecs,
         OUT tvecs,
         flags,
         termCriteria
     );
 
-    intrinsic.reprojectionError = rms;
+    intrinsics.reprojectionError = rms;
+
+    streams[0]->setColorIntrinsics(intrinsics);
 }
 
 void Calibrator::systemCalibration()

@@ -10,7 +10,7 @@ FixedFrameStream::FixedFrameStream(const std::string& colorFile, const std::stri
 
     if (!colorFile.empty()) {
         cv::Mat img = cv::imread(colorFile);
-        colorFrame = new ColorPixel[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
+        colorFrame = newColorFrame();
         Utils::rgbToColorFrame(img, colorFrame);
 
         if (name.empty()) name = colorFile;
@@ -18,7 +18,7 @@ FixedFrameStream::FixedFrameStream(const std::string& colorFile, const std::stri
 
     if (!depthFile.empty()) {
         cv::Mat img = cv::imread(depthFile);
-        depthFrame = new DepthPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
+        depthFrame = newDepthFrame();
         Utils::rgbToDepthFrame(img, depthFrame);
 
         if (name.empty()) name = depthFile;
@@ -79,7 +79,7 @@ bool FixedFrameStream::getColorImage(cv::Mat& mat, FrameNum* frameNum)
 
 void FixedFrameStream::setColorImage(cv::Mat& mat)
 {
-    if (colorFrame == nullptr) colorFrame = new ColorPixel[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
+    if (colorFrame == nullptr) colorFrame = newColorFrame();
     Utils::rgbToColorFrame(mat, colorFrame);
 }
 

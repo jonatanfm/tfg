@@ -21,8 +21,6 @@ class Calibrator : public Operation
         // Stores calibration params such as: params[i] = calibration between stream[0] and stream[i]
         std::vector<ExtrinsicParams> params;
 
-        IntrinsicParams intrinsic;
-
         // Number of rows and columns of the chessboard used to calibrate it
         cv::Size chessboardSize;
 
@@ -47,13 +45,6 @@ class Calibrator : public Operation
         const std::vector< Ptr<DataStream> >& getStreams() const
         {
             return streams;
-        }
-
-        // Returns the intrinsic parameters of the calibrated
-        // stream
-        const IntrinsicParams& getIntrinsicParams() const
-        {
-            return intrinsic;
         }
 
         // Returns the extrinsic parameters between the first stream

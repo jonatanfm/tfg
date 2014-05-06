@@ -3,10 +3,7 @@
 
 #pragma once
 
-#include "DataStream.h"
-
-#include <QThread>
-#include <QMutex>
+#include "AsyncStream.h"
 
 #include "globals.h"
 #include "RenderUtils.h"
@@ -17,7 +14,7 @@
 #include <NuiSkeleton.h>
 #include <NuiImageCamera.h>
 
-class KinectStream : public DataStream, private QThread
+class KinectStream : public AsyncStream
 {
     //friend void runUpdaterWrapper(KinectStream* self);
     friend class KinectManager;
@@ -57,17 +54,6 @@ class KinectStream : public DataStream, private QThread
             return "Kinect" + sensor->NuiInstanceIndex();
         }
 
-
-        bool waitForFrame(ColorPixel* colorFrame, DepthPixel* depthFrame, NUI_SKELETON_FRAME* skeletonFrame, FrameNum* frameNum = nullptr) override;
-
-        bool getColorFrame(ColorPixel* data, FrameNum* num = nullptr) override;
-        bool getColorImage(cv::Mat& mat, FrameNum* num = nullptr) override;
-
-        bool getDepthFrame(DepthPixel* data, FrameNum* num = nullptr) override;
-        //bool getDepthImage(cv::Mat& mat, FrameNum* num = nullptr) override;
-
-        bool getSkeletonFrame(NUI_SKELETON_FRAME& frame, FrameNum* num = nullptr) override;
-
     private:
         INuiSensor* sensor;
 
@@ -76,19 +62,9 @@ class KinectStream : public DataStream, private QThread
         HANDLE colorStream;
         HANDLE depthStream;
 
-        FrameNum colorFrameNum;
-        FrameNum depthFrameNum;
-        FrameNum skeletonFrameNum;
-
-        unsigned char colorBuffer[COLOR_FRAME_SIZE];
-        unsigned char depthBuffer[DEPTH_FRAME_SIZE];
-
-        NUI_SKELETON_FRAME skeleton;
-
-        volatile bool updating;
-
-        QWaitCondition newFrameEvent;
-        QMutex newFrameMutex, colorMutex, depthMutex, skeletonMutex;
+        ColorPixel colorBuffer[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
+        DepthPixel depthBuffer[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
+        NUI_SKELETON_FRAME skeletonBuffer;
 
         KinectStream(const KinectStream&);
         KinectStream& operator=(const KinectStream&);

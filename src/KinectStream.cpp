@@ -7,8 +7,7 @@
 KinectStream::KinectStream() :
     sensor(nullptr),
     colorStream(nullptr),
-    depthStream(nullptr),
-    updating(false)
+    depthStream(nullptr)
 {
     hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 }
@@ -82,11 +81,11 @@ bool KinectStream::initializeStreams()
         return false;
     }
 
-    updating = true;
-    this->start();
     //updater = std::thread(runUpdaterWrapper, this);
 
     printf("Connected to kinect!\n");
+
+    start();
 
     return true;
 }
@@ -95,9 +94,10 @@ bool KinectStream::initializeStreams()
 void KinectStream::release()
 {
     if (sensor != nullptr) {
-        updating = false;
+        stopping = true;
         SetEvent(hEvent);
-        if (this->isRunning()) this->wait();
+        AsyncStream::release();
+
         //if (updater.joinable()) updater.join();
 
         if (hEvent != nullptr) ResetEvent(hEvent);
@@ -111,59 +111,6 @@ void KinectStream::release()
 }
 
 
-bool KinectStream::getColorFrame(ColorPixel* data, FrameNum* num)
-{
-    bool advanced = false;
-    colorMutex.lock();
-    if (num == nullptr || *num != colorFrameNum) {
-        advanced = true;
-        if (num != nullptr) *num = colorFrameNum;
-        memcpy(data, colorBuffer, COLOR_FRAME_SIZE);
-    }
-    colorMutex.unlock();
-    return advanced;
-}
-
-bool KinectStream::getColorImage(cv::Mat& img, FrameNum* num)
-{
-    bool advanced = false;
-    colorMutex.lock();
-    if (num == nullptr || *num != colorFrameNum) {
-        advanced = true;
-        if (num != nullptr) *num = colorFrameNum;
-        Utils::colorFrameToRgb((ColorPixel*)colorBuffer, img);
-    }
-    colorMutex.unlock();
-    return advanced;
-}
-
-
-bool KinectStream::getDepthFrame(DepthPixel* data, FrameNum* num)
-{
-    bool advanced = false;
-    depthMutex.lock();
-    if (num == nullptr || *num != depthFrameNum) {
-        advanced = true;
-        if (num != nullptr) *num = depthFrameNum;
-        memcpy(data, depthBuffer, DEPTH_FRAME_SIZE);
-    }
-    depthMutex.unlock();
-    return advanced;
-}
-
-bool KinectStream::getSkeletonFrame(NUI_SKELETON_FRAME& frame, FrameNum* num)
-{
-    bool advanced = false;
-    skeletonMutex.lock();
-    if (skeleton.dwFrameNumber != frame.dwFrameNumber) {
-        advanced = true;
-        memcpy(&frame, &skeleton, sizeof(NUI_SKELETON_FRAME));
-    }
-    skeletonMutex.unlock();
-    return advanced;
-}
-
-
 void convertBGRA2RGBA(unsigned char* buffer, unsigned int size)
 {
     // Assumes size is multiple of 4
@@ -172,19 +119,6 @@ void convertBGRA2RGBA(unsigned char* buffer, unsigned int size)
         buffer[i] = buffer[i + 2];
         buffer[i + 2] = aux;
     }
-}
-
-bool KinectStream::waitForFrame(ColorPixel* colorFrame, DepthPixel* depthFrame, NUI_SKELETON_FRAME* skeletonFrame, FrameNum* frameNum)
-{
-    bool signaled;
-    newFrameMutex.lock();
-    if (signaled = newFrameEvent.wait(&newFrameMutex)) {
-        if (colorFrame != nullptr) memcpy(colorFrame, colorBuffer, COLOR_FRAME_SIZE);
-        if (depthFrame != nullptr) memcpy(depthFrame, depthBuffer, DEPTH_FRAME_SIZE);
-        if (skeletonFrame != nullptr) memcpy(skeletonFrame, &skeleton, sizeof(NUI_SKELETON_FRAME));
-    }
-    newFrameMutex.unlock();
-    return signaled;
 }
 
 void KinectStream::updateColorBuffer()
@@ -198,13 +132,8 @@ void KinectStream::updateColorBuffer()
     if (lockedRect.Pitch != 0) {
         const BYTE* src = reinterpret_cast<const BYTE*>(lockedRect.pBits);
 
-        colorMutex.lock();
-        {
-            memcpy(colorBuffer, src, COLOR_FRAME_SIZE);
-            convertBGRA2RGBA(colorBuffer, COLOR_FRAME_SIZE);
-            ++colorFrameNum;
-        }
-        colorMutex.unlock();
+        memcpy(colorBuffer, src, COLOR_FRAME_SIZE);
+        convertBGRA2RGBA((unsigned char*) colorBuffer, COLOR_FRAME_SIZE);
     }
     frameTex->UnlockRect(0);
 
@@ -226,12 +155,7 @@ void KinectStream::updateDepthBuffer()
         if (lockedRect.Pitch != 0) {
             const NUI_DEPTH_IMAGE_PIXEL* frame = reinterpret_cast<const NUI_DEPTH_IMAGE_PIXEL*>(lockedRect.pBits);
 
-            depthMutex.lock();
-            {
-                memcpy(depthBuffer, frame, DEPTH_FRAME_SIZE);
-                ++depthFrameNum;
-            }
-            depthMutex.unlock();
+            memcpy(depthBuffer, frame, DEPTH_FRAME_SIZE);
         }
         frameTex->UnlockRect(0);
         frameTex->Release();
@@ -248,9 +172,7 @@ void KinectStream::updateSkeleton()
 
     sensor->NuiTransformSmooth(&frame, nullptr);
 
-    skeletonMutex.lock();
-    skeleton = frame;
-    skeletonMutex.unlock();
+    skeletonBuffer = frame;
 }
 
 void KinectStream::run()
@@ -258,18 +180,15 @@ void KinectStream::run()
     qDebug("[KinectStream] Thread started");
     HRESULT hr;
     while ((hr = WaitForSingleObject(hEvent, INFINITE)) == WAIT_OBJECT_0) {
-        if (!updating) break;
+        if (stopping) break;
         //qDebug("[KinectStream] Thread update");
         ResetEvent(hEvent);
-
-        newFrameMutex.lock();
 
         updateColorBuffer();
         updateDepthBuffer();
         updateSkeleton();
         
-        newFrameEvent.wakeAll();
-        newFrameMutex.unlock();
+        pushFrame(colorBuffer, depthBuffer, &skeletonBuffer);
     }
 
     if (hr == WAIT_FAILED) {

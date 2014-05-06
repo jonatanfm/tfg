@@ -11,7 +11,7 @@
 #include "DataStream.h"
 #include "WidgetOpenGL.h"
 
-class WidgetSceneView : public WidgetOpenGL
+class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 {
     private:
         std::vector< Ptr<DataStream> > streams;
@@ -79,8 +79,8 @@ class WidgetSceneView : public WidgetOpenGL
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(GL_LEQUAL);
 
-            glEnable(GL_CULL_FACE);
-            glCullFace(GL_BACK);
+            glDisable(GL_CULL_FACE);
+            //glCullFace(GL_BACK);
 
             glEnable(GL_LIGHT0);
 
@@ -103,7 +103,7 @@ class WidgetSceneView : public WidgetOpenGL
             glRotatef(cam.yaw, 0.0f, 1.0f, 0.0f);
             glTranslatef(-cam.x, -cam.y, -cam.z);
 
-            const float LIGHT_POS[4] = { 1.0f, 1.0f, 1.0f, 0.0f };
+            const float LIGHT_POS[4] = { 1.0f, 1.0f, -1.0f, 0.0f };
             glLightfv(GL_LIGHT0, GL_POSITION, LIGHT_POS);
 
 
@@ -250,7 +250,6 @@ class WidgetSceneView : public WidgetOpenGL
             }
             glEnd();
             glEnable(GL_DEPTH_TEST);
-            //gluCylinder(quadric, 0.1f, 0.0f, 0.1f, 8, 8);
         }
 
         void drawCam()
@@ -258,8 +257,9 @@ class WidgetSceneView : public WidgetOpenGL
             //gluSphere(quadric, 0.1f, 8, 8);
             glPushMatrix();
             {
-                glTranslatef(0.0f, 0.0f, -0.1f);
-                gluCylinder(quadric, 0.05f, 0.0f, 0.1f, 12, 1);
+                glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
+                gluCylinder(quadric, 0.1f, 0.0f, 0.2f, 12, 1);
+                gluDisk(quadric, 0.0f, 0.1f, 12, 1);
             }
             glPopMatrix();
         }

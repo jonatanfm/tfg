@@ -8,6 +8,8 @@
 
 #include "DataStream.h"
 
+#include "SubWindow.h"
+
 namespace Ui {
     class WidgetRecorder;
 }
@@ -16,7 +18,7 @@ class MainWindow;
 
 class Recorder;
 
-class WidgetRecorder : public QWidget
+class WidgetRecorder : public QWidget, public SubWindowWidget
 {
     Q_OBJECT
 

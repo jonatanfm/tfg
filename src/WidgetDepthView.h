@@ -9,7 +9,7 @@
 #include "DataStream.h"
 #include "WidgetOpenGL.h"
 
-class WidgetDepthView : public WidgetOpenGL
+class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
 {
     private:
         Ptr<DataStream> stream;
@@ -29,7 +29,7 @@ class WidgetDepthView : public WidgetOpenGL
             makeCurrent();
             texture = RenderUtils::createTexture(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT);
             buffer = new DataStream::ColorPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
-            frame = new DataStream::DepthPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
+            frame = DataStream::newDepthFrame();
         }
 
         ~WidgetDepthView()
@@ -38,7 +38,10 @@ class WidgetDepthView : public WidgetOpenGL
             delete[] buffer;
         }
 
-        inline Ptr<DataStream> getStream() { return stream; }
+        Ptr<DataStream> getStream() const override
+        {
+            return stream;
+        }
 
         void frameToImage()
         {

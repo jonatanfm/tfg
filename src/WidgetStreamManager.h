@@ -10,9 +10,11 @@
 
 #include "MainWindow.h"
 
+#include "SubWindow.h"
+
 #include "Calibrator.h"
 
-class WidgetStreamManager : public QWidget
+class WidgetStreamManager : public QWidget, public SubWindowWidget
 {
     Q_OBJECT
 

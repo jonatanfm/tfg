@@ -5,6 +5,8 @@
 
 #include "globals.h"
 
+#include "Calibration.h"
+
 // Base class for the different data streams
 // As a plus, implements OpenCV compatibility with "VideoCapture" class
 class DataStream : public cv::VideoCapture
@@ -68,7 +70,9 @@ class DataStream : public cv::VideoCapture
         // Size in bytes of a Depth frame
         static const unsigned int DEPTH_FRAME_SIZE = (DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT) * sizeof(DepthPixel);
 
-        DataStream()
+        DataStream() :
+            colorIntrinsics(),
+            depthIntrinsics()
         {
 
         }
@@ -150,9 +154,42 @@ class DataStream : public cv::VideoCapture
         }
 
 
+
+        const IntrinsicParams& getColorIntrinsics() const
+        {
+            return colorIntrinsics;
+        }
+
+        const IntrinsicParams& getDepthIntrinsics() const
+        {
+            return depthIntrinsics;
+        }
+
+        void setColorIntrinsics(IntrinsicParams& intrinsics)
+        {
+            colorIntrinsics = intrinsics;
+        }
+
+        void setDepthIntrinsics(IntrinsicParams& intrinsics)
+        {
+            depthIntrinsics = intrinsics;
+        }
+
     public:
 
         static void deleting(DataStream* stream); // Implemented in MainWindow.cpp, do not call manually
+
+
+        static inline ColorPixel* newColorFrame()
+        {
+            return new ColorPixel[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
+        }
+
+        static inline DepthPixel* newDepthFrame()
+        {
+            return new DepthPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
+        }
+
 
 
         virtual bool grab() override
@@ -204,6 +241,11 @@ class DataStream : public cv::VideoCapture
         {
             return false;
         }
+
+    protected:
+
+        IntrinsicParams colorIntrinsics;
+        IntrinsicParams depthIntrinsics;
 
 };
 

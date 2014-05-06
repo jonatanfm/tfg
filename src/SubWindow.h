@@ -7,6 +7,8 @@
 
 #include "WidgetOpenGL.h"
 
+#include "DataStream.h"
+
 class MainWindow;
 
 #ifdef _WIN32
@@ -33,6 +35,20 @@ class SubWindow : public QMdiSubWindow
 
     protected:
         MainWindow* window;
+
+};
+
+
+class SubWindowWidget
+{
+    public:
+        virtual ~SubWindowWidget() { };
+
+        // Get the main stream used in this subwindow, or null if no stream is used
+        virtual Ptr<DataStream> getStream() const
+        {
+            return nullptr;
+        }
 
 };
 

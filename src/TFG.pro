@@ -41,10 +41,12 @@ HEADERS += \
     Utils.h \
     RenderUtils.h \
     DataStream.h \
+    AsyncStream.h \
     KinectManager.h \
     KinectStream.h \
     FixedFrameStream.h \
     RecordedStream.h \
+    ChessboardDetectorStream.h \
     Calibration.h \
     Calibrator.h \
     Operation.h \

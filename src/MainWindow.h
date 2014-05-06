@@ -98,7 +98,7 @@ class MainWindow : public QMainWindow
 
         void initialize();
 
-        void addSubwindow(QWidget* widget, const QString& title);
+        void addSubWindow(SubWindowWidget* widget, const QString& title);
 
         void openStreamWindows(int i);
 
@@ -127,6 +127,8 @@ class MainWindow : public QMainWindow
         void openImageStream();
 
         void openSceneView();
+
+        void openChessboardFinder();
 
         void changedSubwindow(QMdiSubWindow* win);
 

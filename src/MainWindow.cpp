@@ -6,6 +6,8 @@
 #include "WidgetRecorder.h"
 #include "WidgetStreamManager.h"
 
+#include "ChessboardDetectorStream.h"
+
 #include "Calibrator.h"
 #include "Operation.h"
 
@@ -117,10 +119,10 @@ void MainWindow::setModeMeasure()
 }
 
 
-void MainWindow::addSubwindow(QWidget* widget, const QString& title)
+void MainWindow::addSubWindow(SubWindowWidget* widget, const QString& title)
 {
     SubWindow* win = new SubWindow(this);
-    win->setWidget(widget);
+    win->setWidget(dynamic_cast<QWidget*>(widget));
     win->setWindowTitle(title);
     win->setAttribute(Qt::WA_DeleteOnClose);
     //win->setWindowIcon(this->windowIcon());
@@ -239,13 +241,13 @@ void MainWindow::openStreamWindows(int i)
     if (stream->hasColor())
     {
         WidgetColorView* colorView = new WidgetColorView(*this, stream);
-        addSubwindow(colorView, "#" + QString::number(i) + " - " + name + " - Color");
+        addSubWindow(colorView, "#" + QString::number(i) + " - " + name + " - Color");
     }
 
     if (stream->hasDepth())
     {
         WidgetDepthView* depthView = new WidgetDepthView(*this, stream);
-        addSubwindow(depthView, "#" + QString::number(i) + " - " + name + " - Depth");
+        addSubWindow(depthView, "#" + QString::number(i) + " - " + name + " - Depth");
     }
 }
 
@@ -259,13 +261,28 @@ void MainWindow::openKinect(int i)
 void MainWindow::openRecorder()
 {
     WidgetRecorder* w = findSubwindowByType<WidgetRecorder>(mdiArea);
-    if (w == nullptr) addSubwindow(new WidgetRecorder(*this), "Recorder");
+    if (w == nullptr) addSubWindow(new WidgetRecorder(*this), "Recorder");
 }
 
 void MainWindow::openSceneView()
 {
     WidgetSceneView* w = findSubwindowByType<WidgetSceneView>(mdiArea);
-    if (w == nullptr) addSubwindow(new WidgetSceneView(*this), "Scene View");
+    if (w == nullptr) addSubWindow(new WidgetSceneView(*this), "Scene View");
+}
+
+void MainWindow::openChessboardFinder()
+{
+    SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
+    if (w != nullptr) {
+        Ptr<DataStream> stream = w->getStream();
+        if (stream != nullptr) {
+            QString sizes = QInputDialog::getText(this, "Find Chessboard", "Input the chessboard size:\n(Number of rows/cols - 1)", QLineEdit::Normal, "6x6");
+            auto parts = sizes.trimmed().split(QRegularExpression("\\D"));
+            if (parts.size() == 2) {
+                addStream(new ChessboardDetectorStream(stream, parts[0].toInt(), parts[1].toInt()));
+            }
+        }
+    }
 }
 
 
@@ -279,7 +296,7 @@ void MainWindow::openStreamManager()
     else {
         w = new WidgetStreamManager(*this);
         w->refresh();
-        addSubwindow(w, "Stream Manager");
+        addSubWindow(w, "Stream Manager");
     }
 }
 
@@ -325,8 +342,8 @@ void MainWindow::openRecordedStream()
 
 void MainWindow::setStatusText(QString text)
 {
-    statusBar->showMessage(text);
-    //statusBarText->setText(QString::fromStdString(text));
+    //statusBar->showMessage(text);
+    statusBarText->setText(text);
 }
 
 void MainWindow::setStatusProgress(int progress, int max)
@@ -432,6 +449,8 @@ void MainWindow::setupUi()
 
     MENU("Actions");
     {
+        ACTION("Find chessboards", openChessboardFinder());
+
         ACTION("Record", openRecorder());
     }
 
