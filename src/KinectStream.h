@@ -36,12 +36,12 @@ class KinectStream : public AsyncStream
 
         bool hasColor() const override
         {
-            return colorStream != nullptr;
+            return true; // colorStream != nullptr;
         }
 
         bool hasDepth() const override
         {
-            return depthStream != nullptr;
+            return true; // depthStream != nullptr;
         }
 
         bool hasSkeleton() const override

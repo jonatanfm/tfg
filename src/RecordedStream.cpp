@@ -15,7 +15,7 @@ RecordedStream::RecordedStream(const std::string& color, const std::string& dept
         colorVideo.open(colorFile);
         if (!colorVideo.isOpened()) colorFile.clear();
         else {
-            colorFrame.create(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3);
+            recordedColorFrame.create(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3);
             colorBuffer = newColorFrame();
             if (name.empty()) name = colorFile;
         }
@@ -25,15 +25,19 @@ RecordedStream::RecordedStream(const std::string& color, const std::string& dept
         depthVideo.open(depthFile);
         if (!depthVideo.isOpened()) depthFile.clear();
         else {
-            depthFrame.create(cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT), CV_16UC1);
+            recordedDepthFrame.create(cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT), CV_8UC3);
             depthBuffer = newDepthFrame();
             if (name.empty()) name = depthFile;
         }
     }
 
     if (!skeletonFile.empty()) {
-        // TODO
-        if (name.empty()) name = skeletonFile;
+        if (!skeletonReader.openFileForReading(skeletonFile.c_str())) {
+            skeletonFile.clear();
+        }
+        else {
+            if (name.empty()) name = skeletonFile;
+        }
     }
 
     if (name.empty()) name = "Unnamed";
@@ -47,13 +51,31 @@ RecordedStream::RecordedStream(const std::string& color, const std::string& dept
 
 RecordedStream::~RecordedStream()
 {
-    if (colorBuffer != nullptr) delete[] colorBuffer;
-    if (depthBuffer != nullptr) delete[] depthBuffer;
+    release();
 }
 
+void RecordedStream::release()
+{
+    qDebug("Released!");
+    stopping = true;
+    AsyncStream::release();
 
+    colorVideo.release();
+    depthVideo.release();
+    skeletonReader.close();
 
-static const int FPS = 30;
+    if (colorBuffer != nullptr) {
+        delete[] colorBuffer;
+        colorBuffer = nullptr;
+    }
+    if (depthBuffer != nullptr) {
+        delete[] depthBuffer;
+        depthBuffer = nullptr;
+    }
+}
+
+//static const int FPS = 30;
+static const int FPS = 1;
 
 void RecordedStream::run()
 {
@@ -61,6 +83,7 @@ void RecordedStream::run()
 
     ColorPixel* color;
     DepthPixel* depth;
+    NUI_SKELETON_FRAME* skeleton;
     while (true) {
         if (stopping) break;
 
@@ -69,7 +92,7 @@ void RecordedStream::run()
             //currentFrame = 0;
             colorVideo.open(colorFile);
             depthVideo.open(depthFile);
-            // todo
+            skeletonReader.reset();
         }
 
         if (!paused) Sleep(1000 / FPS);
@@ -83,23 +106,26 @@ void RecordedStream::run()
             }
         }
 
-        color = nullptr;
-        if (colorVideo.isOpened() && colorVideo.grab()) {
-            colorVideo.retrieve(colorFrame);
-            Utils::rgbToColorFrame(colorFrame, colorBuffer);
-            color = colorBuffer;
-        }
-
         depth = nullptr;
         if (depthVideo.isOpened() && depthVideo.grab()) {
-            depthVideo.retrieve(depthFrame);
-            Utils::rgbToDepthFrame(depthFrame, depthBuffer);
+            depthVideo.retrieve(recordedDepthFrame);
+            Utils::rgbToDepthFrame(recordedDepthFrame, depthBuffer);
             depth = depthBuffer;
         }
 
-        //updateSkeleton(); // TODO
+        color = nullptr;
+        if (colorVideo.isOpened() && colorVideo.grab()) {
+            colorVideo.retrieve(recordedColorFrame);
+            Utils::rgbToColorFrame(recordedDepthFrame, colorBuffer);
+            color = colorBuffer;
+        }
 
-        pushFrame(color, depth, nullptr);
+        skeleton = nullptr;
+        if (skeletonReader.isOpen() && skeletonReader.readFrame(recordedSkeletonFrame)) {
+            skeleton = &recordedSkeletonFrame;
+        }
+
+        pushFrame(color, depth, skeleton);
     }
 
     qDebug("[RecordedStream] Thread exited");

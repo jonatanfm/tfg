@@ -50,6 +50,7 @@ HEADERS += \
     Calibration.h \
     Calibrator.h \
     Operation.h \
+    SkeletonIO.h \
     Mode.h \
     ModeMeasure.h \
     MainWindow.h \

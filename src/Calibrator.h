@@ -64,9 +64,7 @@ class Calibrator : public Operation
 
         bool findPoints(cv::Mat& image, cv::Mat& gray, INOUT cv::vector< cv::vector<cv::Point2f> >& points);
 
-        void generateChessboardPoints(OUT cv::Mat& points, float squareSize = 1.0f);
-
-        //void generateChessboardPointsInVector(OUT cv::vector<cv::Point3f>& points, float squareSize = 1.0f);
+        void generateChessboardPoints(OUT cv::vector<cv::Point3f>& points, float squareSize = 1.0f);
         
 
         void streamCalibration();

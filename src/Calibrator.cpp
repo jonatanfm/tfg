@@ -44,9 +44,9 @@ bool Calibrator::findPoints(cv::Mat& image, cv::Mat& gray, INOUT cv::vector< cv:
     return true;
 }
 
-void Calibrator::generateChessboardPoints(OUT cv::Mat& points, float squareSize)
+/*void Calibrator::generateChessboardPoints(OUT cv::Mat& points, float squareSize)
 {
-    points.create(cv::Size(3, chessboardSize.width * chessboardSize.height), CV_32F);
+    points.create(cv::Size(1, chessboardSize.width * chessboardSize.height), CV_32FC3);
     for (int i = 0; i < chessboardSize.height; ++i) {
         for (int j = 0; j < chessboardSize.width; ++j) {
             int idx = i * chessboardSize.width + j;
@@ -56,22 +56,23 @@ void Calibrator::generateChessboardPoints(OUT cv::Mat& points, float squareSize)
         }
     }
     //int ni = cv::InputArray(points).getMat(0).checkVector(3, CV_32F);
-}
+}*/
 
-/*void Calibrator::generateChessboardPointsInVector(OUT cv::vector<cv::Point3f>& points, float squareSize)
+void Calibrator::generateChessboardPoints(OUT cv::vector<cv::Point3f>& points, float squareSize)
 {
     for (int i = 0; i < chessboardSize.height; ++i) {
         for (int j = 0; j < chessboardSize.width; ++j) {
             points.push_back(cv::Point3f(squareSize * j, squareSize * i, 0.0f));
         }
     }
-    int ni = cv::InputArray(points).getMat(0).checkVector(3, CV_32F);
-}*/
+}
 
 
 
 void Calibrator::streamCalibration()
 {
+    statusChanged("Starting callibration...");
+
     // Size of the streams
     cv::Size imageSize(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
 
@@ -80,22 +81,19 @@ void Calibrator::streamCalibration()
     cv::vector< cv::vector<cv::Point2f> > foundPoints;
 
     // Reference chessboard points
-    //cv::vector<cv::Point3f> objectPoints;
-    cv::Mat objectPoints;
-    generateChessboardPoints(OUT objectPoints);
+    cv::vector< cv::vector<cv::Point3f> > objectPoints(1);
+    generateChessboardPoints(OUT objectPoints[0]);
 
-    // DEBUG
-    cv::VideoCapture capture("D:/Lib/opencv/sources/samples/cpp/left%02d.jpg");
+    objectPoints.resize(objectPoints[0].size(), objectPoints[0]);
 
-    const int targetFrameCount = objectPoints.rows;
-    //const int targetFrameCount = objectPoints.size();
+    const int targetFrameCount = objectPoints.size();
+
+    statusChanged("Grabbing frames...");
 
     // Main loop - grab and process frames
     int frameCount = 0;
     while (frameCount < targetFrameCount) {
-
-        if (frameCount < 9) capture >> frame;
-        //*streams[0] >> frame;
+        *streams[0] >> frame;
 
         cv::cvtColor(frame, gray, CV_RGB2GRAY);
 
@@ -121,6 +119,8 @@ void Calibrator::streamCalibration()
 
     //intrinsic.distCoeffs = cv::Mat::zeros(3, 3, CV_64F);
 
+    statusChanged("Computing parameters...");
+    progressChanged(0, 0);
 
     // WARNING! objectPoints.size() MUST BE EQUAL TO foundPoints.size()!!
 
@@ -139,6 +139,11 @@ void Calibrator::streamCalibration()
 
     intrinsics.reprojectionError = rms;
 
+    qDebug() << "Finished calibration!";
+    qDebug() << "Camera matrix: " << QString::fromStdString(Utils::matToString<double>(intrinsics.cameraMatrix));
+    qDebug() << "Dist coeffs: " << QString::fromStdString(Utils::matToString<double>(intrinsics.distCoeffs));
+    qDebug() << "Reprojection error: " << rms;
+
     streams[0]->setColorIntrinsics(intrinsics);
 }
 
@@ -150,15 +155,14 @@ void Calibrator::systemCalibration()
     const int N = int(streams.size());
 
     // Reference chessboard points, to use in the calibration
-    //cv::vector<cv::Point3f> objectPoints;
-    cv::Mat objectPoints;
+    cv::vector<cv::Point3f> objectPoints;
     generateChessboardPoints(OUT objectPoints);
 
     // Size of the streams
     cv::Size imageSize(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
 
     // To store the found points, as well as the reference points, for each frame
-    cv::vector< cv::Mat > chessboardPoints;
+    cv::vector< cv::vector<cv::Point3f> > chessboardPoints;
     cv::vector< cv::vector< cv::vector<cv::Point2f> > > foundPoints;
     foundPoints.resize(N);
 
@@ -205,18 +209,6 @@ void Calibrator::systemCalibration()
 
         ++frameCount;
         progressChanged(frameCount, MAX_NUM_FRAMES);
-
-        #pragma message("TODO: REMOVE THIS DEBUG")
-        if (frameCount == MAX_NUM_FRAMES) {
-            for (i = 0; i < N; ++i) {
-                FixedFrameStream* fis = dynamic_cast<FixedFrameStream*>((DataStream*)streams[i]);
-                if (fis != nullptr) {
-                    cv::Mat debugImg(frames[i]);
-                    drawChessboardCorners(debugImg, chessboardSize, foundPoints[i].back(), true);
-                    fis->setColorImage(debugImg);
-                }
-            }
-        }
     }
 
     statusChanged("Computing parameters...");

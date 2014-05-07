@@ -59,8 +59,8 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
                 int valid = int(depth >= MIN_DEPTH && depth <= MAX_DEPTH);
 
                 // CLAMP
-                /*valid = 1;
-                depth -= ((depth - MAX_DEPTH) & -(depth > MAX_DEPTH));
+                //valid = 1;
+                /*depth -= ((depth - MAX_DEPTH) & -(depth > MAX_DEPTH));
                 depth -= ((depth - MIN_DEPTH) & -(depth < MIN_DEPTH));*/
 
                 BYTE val = (BYTE)(255 - ((depth - MIN_DEPTH) * 256) / (MAX_DEPTH - MIN_DEPTH));

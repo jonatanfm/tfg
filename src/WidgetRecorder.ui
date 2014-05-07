@@ -117,6 +117,33 @@
       </layout>
      </item>
      <item>
+      <widget class="QLabel" name="lblCodecs1">
+       <property name="text">
+        <string>  "DIB ": Uncompressed</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="lblCodecs2">
+       <property name="text">
+        <string>  "HFYU": Huffman Lossless Codec</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="lblCodecsMore">
+       <property name="text">
+        <string>&#160;&#160;See &lt;a href="http://www.fourcc.org/codecs.php"&gt;http://www.fourcc.org/codecs.php&lt;/a&gt; for more codecs.</string>
+       </property>
+       <property name="textFormat">
+        <set>Qt::RichText</set>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextBrowserInteraction</set>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="verticalSpacer">
        <property name="orientation">
         <enum>Qt::Vertical</enum>

@@ -3,6 +3,8 @@
 
 #include "MainWindow.h"
 
+#include "SkeletonIO.h"
+
 #include "Utils.h"
 
 #pragma region class Recorder
@@ -113,14 +115,11 @@
 
             void run() override
             {
-                DataStream::FrameNum num;
-
                 while (recording) {
-                    if (stream->getColorFrame(frame, &num)) {
+                    if (stream->waitForFrame(frame, nullptr, nullptr)) {
                         Utils::colorFrameToRgb(frame, buffer);
                         writer << buffer;
                     }
-                    Sleep(10);
                 }
                 writer.release();
             }
@@ -144,7 +143,7 @@
         public:
             DepthRecorder(Ptr<DataStream> stream) :
                 Recorder(stream),
-                buffer(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3)
+                buffer(cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT), CV_8UC3)
             {
                 frame = DataStream::newDepthFrame();
             }
@@ -169,13 +168,11 @@
 
             void run() override
             {
-                DataStream::FrameNum num;
                 while (recording) {
-                    if (stream->getDepthFrame(frame, &num)) {
+                    if (stream->waitForFrame(nullptr, frame, nullptr)) {
                         Utils::depthFrameToRgb(frame, buffer);
                         writer << buffer;
                     }
-                    Sleep(10);
                 }
                 writer.release();
             }
@@ -194,33 +191,11 @@
 
     class SkeletonRecorder : public Recorder
     {
-        private:
-
-            static const uint16_t MAGIC_NUMBER = 0xADDE;
-
-            struct Header
-            {
-                uint16_t magicNumber;
-                uint8_t version;
-                uint8_t reserved;
-                uint32_t numFrames;
-            };
-
         public:
             SkeletonRecorder(Ptr<DataStream> stream) :
-                Recorder(stream),
-                file(nullptr),
-                numFrames(0)
+                Recorder(stream)
             {
             
-            }
-
-            ~SkeletonRecorder()
-            {
-                if (file != nullptr) {
-                    fclose(file);
-                    file = nullptr;
-                }
             }
 
             bool setupWriter(const QString& filename, int) override
@@ -230,42 +205,25 @@
                 //if (i != -1) f = f.mid(0, i);
                 f += ".bin";
 
-                file = fopen(f.toUtf8().data(), "wb");
-                if (file != nullptr) {
-                    Header header = { 0 };
-                    fwrite(&header, sizeof(header), 1, file);
-                    return true;
-                }
-                return false;
+                return writer.openFileForWriting(f.toUtf8().data());
             }
 
             void run() override
             {
-                DataStream::FrameNum num;
                 while (recording) {
-                    if (stream->getSkeletonFrame(frame, &num)) {
-                        fwrite(&frame, sizeof(frame), 1, file);
-                        ++numFrames;
+                    if (stream->waitForFrame(nullptr, nullptr, &frame)) {
+                        writer.writeFrame(frame);
                     }
                     Sleep(10);
                 }
 
-                fseek(file, 0, SEEK_SET);
-                Header header = { 0 };
-                header.magicNumber = MAGIC_NUMBER;
-                header.version = 1;
-                header.numFrames = numFrames;
-                fwrite(&header, sizeof(header), 1, file);
-
-                fclose(file);
-                file = nullptr;
+                writer.close();
             }
 
         private:
             NUI_SKELETON_FRAME frame;
-            uint32_t numFrames;
 
-            FILE* file;
+            SkeletonIO writer;
 
     };
 
@@ -437,7 +395,13 @@ void WidgetRecorder::captureDepthFrame(Ptr<DataStream> stream, QString filename)
 
 void WidgetRecorder::captureSkeletonFrame(Ptr<DataStream> stream, QString filename)
 {
-    // TODO
+    NUI_SKELETON_FRAME frame;
+    stream->getSkeletonFrame(frame);
+
+    SkeletonIO writer;
+    if (!writer.openFileForWriting(filename.toStdString().c_str())) return;
+    writer.writeFrame(frame);
+    writer.close();
 }
 
 
@@ -460,7 +424,7 @@ void WidgetRecorder::updateStreamList()
     ui->list->clear();
 
     KinectManager& k = mainWindow.getKinectManager();
-    for (int i = 0; i < k.getSensorCount(); ++i) {
+    for (int i = 0; i < k.getSensorCount(); ++i) if (k.getStream(i) != nullptr) {
         addListItem(ui->list, "Kinect " + QString::number(i + 1) + " - Color");
         addListItem(ui->list, "Kinect " + QString::number(i + 1) + " - Depth");
         addListItem(ui->list, "Kinect " + QString::number(i + 1) + " - Skeleton");

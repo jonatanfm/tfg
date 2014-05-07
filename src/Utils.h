@@ -77,16 +77,28 @@ class Utils
 
         static void rgbToDepthFrame(const cv::Mat& image, DataStream::DepthPixel* frame)
         {
-            const unsigned char* src = image.data;
             DataStream::DepthPixel* dest = frame;
-            DataStream::DepthPixel* end = frame + DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT;
-
-            while (dest < end) {
-                dest->depth = ((*src) << 8) | *(src + 1);
-                dest->playerIndex = *(src + 2);
-                src += 3;
-                ++dest;
-            }
+            //if (image.isContinuous()) {
+                DataStream::DepthPixel* end = frame + DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT;
+                const unsigned char* src = image.data;
+                while (dest < end) {
+                    dest->depth = ((*src) << 8) | *(src + 1);
+                    dest->playerIndex = *(src + 2);
+                    src += 3;
+                    ++dest;
+                }
+            /*}
+            else {
+                for (int i = 0; i < DEPTH_FRAME_HEIGHT; ++i) {
+                    const unsigned char* src = image.ptr(i);
+                    for (int j = 0; j < DEPTH_FRAME_WIDTH; ++j) {
+                        dest->depth = ((*src) << 8) | *(src + 1);
+                        dest->playerIndex = *(src + 2);
+                        src += 3;
+                        ++dest;
+                    }
+                }
+            }*/
         }
 
 

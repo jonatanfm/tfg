@@ -12,8 +12,6 @@
 #include "KinectManager.h"
 #include "KinectStream.h"
 
-#include "FixedFrameStream.h"
-
 #include "SubWindow.h"
 #include "WidgetOpenGL.h"
 

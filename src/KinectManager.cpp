@@ -43,7 +43,7 @@ void KinectManager::deviceStatusChanged(const OLECHAR* deviceId, bool connected)
     if (connected) {
         qDebug() << "Connected Kinect: " << deviceId;
         for (unsigned int i = 0; i < kinects.size(); ++i) {
-            if (kinects[i]->sensor != nullptr) {
+            if (kinects[i] != nullptr && kinects[i]->sensor != nullptr) {
                 OLECHAR* id = kinects[i]->sensor->NuiDeviceConnectionId();
                 if (wcscmp(id, deviceId) == 0) {
                     // TODO: clear threads errors
@@ -56,9 +56,9 @@ void KinectManager::deviceStatusChanged(const OLECHAR* deviceId, bool connected)
         kinects.back()->initializeById(deviceId);
     }
     else { // Disconnected
-        qDebug() << "Disconected Kinect: " << deviceId;
+        qDebug() << "Disconnected Kinect: " << deviceId;
         for (unsigned int i = 0; i < kinects.size(); ++i) {
-            if (kinects[i]->sensor != nullptr) {
+            if (kinects[i] != nullptr && kinects[i]->sensor != nullptr) {
                 OLECHAR* id = kinects[i]->sensor->NuiDeviceConnectionId();
                 if (wcscmp(id, deviceId) == 0) {
                     kinects[i]->release();

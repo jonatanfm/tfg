@@ -67,10 +67,6 @@ class SystemCalibration
         void add(int baseStreamIdx, int targetStreamIdx, const ExtrinsicParams& params)
         {
             calibrations[std::make_pair(baseStreamIdx, targetStreamIdx)] = params;
-
-            qDebug() << "Calibrated streams " << baseStreamIdx << " and " << targetStreamIdx;
-            //qDebug() << QString::fromStdString("R: " + Utils::matToString<double>(params.R));
-            //qDebug() << QString::fromStdString("T: " + Utils::matToString<double>(params.T));
         }
 
         std::vector< std::pair<int, ExtrinsicParams> > getCalibratedWith(int base) const

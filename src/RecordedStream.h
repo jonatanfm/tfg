@@ -5,12 +5,15 @@
 
 #include "AsyncStream.h"
 
+#include "SkeletonIO.h"
+
 class RecordedStream : public AsyncStream
 {
     public:
         RecordedStream(const std::string& colorFile, const std::string& depthFile, const std::string& skeletonFile);
-        ~RecordedStream();
 
+        ~RecordedStream();
+        void release() override;
 
         void reset()
         {
@@ -64,13 +67,15 @@ class RecordedStream : public AsyncStream
 
         cv::VideoCapture colorVideo;
         cv::VideoCapture depthVideo;
+        SkeletonIO skeletonReader;
 
-        cv::Mat colorFrame;
-        cv::Mat depthFrame;
+        cv::Mat recordedColorFrame;
+        cv::Mat recordedDepthFrame;
+        NUI_SKELETON_FRAME recordedSkeletonFrame;
 
         ColorPixel* colorBuffer;
         DepthPixel* depthBuffer;
-
+        
         volatile bool resetting;
         volatile bool paused;
         volatile bool advancing;

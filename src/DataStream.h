@@ -40,6 +40,11 @@ class DataStream : public cv::VideoCapture
                 {
                     ++num;
                 }
+
+                inline int getNumber() const
+                {
+                    return num;
+                }
         };
 
 

@@ -6,6 +6,8 @@
 #include "WidgetRecorder.h"
 #include "WidgetStreamManager.h"
 
+#include "FixedFrameStream.h"
+#include "RecordedStream.h"
 #include "ChessboardDetectorStream.h"
 
 #include "Calibrator.h"
@@ -306,6 +308,17 @@ void MainWindow::updateStreamManager()
     if (w != nullptr) w->refresh();
 }
 
+static bool determineStreamFiles(const QStringList& list, OUT QString& color, OUT QString& depth, OUT QString& skeleton)
+{
+    color = ""; depth = ""; skeleton = "";
+    for (int i = 0; i < list.size(); ++i) {
+        if (list[i].indexOf("skeleton") != -1) skeleton = list[i];
+        else if (list[i].indexOf("depth") != -1) depth = list[i];
+        else color = list[i];
+    }
+    return !color.isEmpty() || !depth.isEmpty() || !skeleton.isEmpty();
+}
+
 void MainWindow::openImageStream()
 {
     QFileDialog dialog(this);
@@ -315,17 +328,10 @@ void MainWindow::openImageStream()
     filters << "Image files (*.png *.bmp *.xpm *.jpg)" << "Any files (*)";
     dialog.setNameFilters(filters);
     if (dialog.exec()) {
-        QStringList list = dialog.selectedFiles();
-
-        QString color = "", depth = "", skeleton = "";
-
-        for (int i = 0; i < list.size(); ++i) {
-            if (list[i].indexOf("skeleton") != -1) skeleton = list[i];
-            else if (list[i].indexOf("depth") != -1) depth = list[i];
-            else color = list[i];
+        QString color, depth, skeleton;
+        if (determineStreamFiles(dialog.selectedFiles(), OUT color, OUT depth, OUT skeleton)) {
+            addStream(new FixedFrameStream(color.toStdString(), depth.toStdString(), skeleton.toStdString()));
         }
-
-        addStream(new FixedFrameStream(color.toStdString(), depth.toStdString(), skeleton.toStdString()));
     }
 }
 
@@ -336,7 +342,10 @@ void MainWindow::openRecordedStream()
     dialog.setFileMode(QFileDialog::ExistingFiles);
     dialog.setNameFilter("Stream Videos (*.avi *.wmv *.mp4 *.bin)");
     if (dialog.exec()) {
-        QStringList list = dialog.selectedFiles();
+        QString color, depth, skeleton;
+        if (determineStreamFiles(dialog.selectedFiles(), OUT color, OUT depth, OUT skeleton)) {
+            addStream(new RecordedStream(color.toStdString(), depth.toStdString(), skeleton.toStdString()));
+        }
     }
 }
 
@@ -354,7 +363,7 @@ void MainWindow::setStatusProgress(int progress, int max)
 
 void MainWindow::operationFinished()
 {
-    statusBar->showMessage("Finished");
+    setStatusText("Finished");
     setStatusProgress(0, 1);
     statusBarProgress->setEnabled(false);
 
@@ -370,6 +379,9 @@ void MainWindow::operationFinished()
                 int j = findStreamIndex(streams[k]);
                 if (j != -1) {
                     calibration.add(i, j, params[j - 1]);
+                    qDebug() << "Calibrated streams " << i << " and " << j;
+                    qDebug() << QString::fromStdString("R: " + Utils::matToString<double>(params[j - 1].R));
+                    qDebug() << QString::fromStdString("T: " + Utils::matToString<double>(params[j - 1].T));
                 }
             }
         }

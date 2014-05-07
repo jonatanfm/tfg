@@ -147,9 +147,9 @@ class AsyncStream : public DataStream, private QThread
         QWaitCondition nextFrame;
         QMutex mutex;
 
-        FrameNum currentFrame;
-
     protected:
+
+        FrameNum currentFrame;
 
         ColorPixel* colorFrame;
         DepthPixel* depthFrame;
