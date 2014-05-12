@@ -13,7 +13,6 @@ class RecordedStream : public AsyncStream
         RecordedStream(const std::string& colorFile, const std::string& depthFile, const std::string& skeletonFile);
 
         ~RecordedStream();
-        void release() override;
 
         void reset()
         {
@@ -80,7 +79,7 @@ class RecordedStream : public AsyncStream
         volatile bool paused;
         volatile bool advancing;
 
-        void run() override;
+        void stream() override;
 
 };
 

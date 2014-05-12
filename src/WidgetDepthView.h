@@ -30,10 +30,13 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
             texture = RenderUtils::createTexture(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT);
             buffer = new DataStream::ColorPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
             frame = DataStream::newDepthFrame();
+
+            stream->addNewFrameCallback(this, [this]() -> void { emit this->triggerRefresh(); });
         }
 
         ~WidgetDepthView()
         {
+            if (stream) stream->removeNewFrameCallback(this);
             delete[] frame;
             delete[] buffer;
         }

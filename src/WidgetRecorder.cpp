@@ -416,11 +416,6 @@ void addListItem(QListWidget* list, const QString& text)
 
 void WidgetRecorder::updateStreamList()
 {
-    /*QLayoutItem* item;
-    while ((item = ui->list->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }*/
     ui->list->clear();
 
     KinectManager& k = mainWindow.getKinectManager();

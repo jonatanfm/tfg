@@ -37,7 +37,7 @@ class ChessboardDetectorStream : public AsyncStream
             return true;
         }
 
-        void run() override
+        void stream() override
         {
             DataStream::ColorPixel* buffer = newColorFrame();
             cv::Mat image(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3);

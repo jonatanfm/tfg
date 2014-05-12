@@ -27,8 +27,6 @@ class KinectStream : public AsyncStream
         bool initialize(int sensorIndex = 0);
         bool initializeById(const OLECHAR* id);
 
-        void release() override;
-
         bool isOpened() const override
         {
             return sensor != nullptr;
@@ -75,7 +73,9 @@ class KinectStream : public AsyncStream
         void updateDepthBuffer();
         void updateSkeleton();
 
-        void run() override;
+        void stream() override;
+
+        void stop() override;
 };
 
 #endif

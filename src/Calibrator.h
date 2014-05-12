@@ -21,14 +21,19 @@ class Calibrator : public Operation
         // Stores calibration params such as: params[i] = calibration between stream[0] and stream[i]
         std::vector<ExtrinsicParams> params;
 
-        // Number of rows and columns of the chessboard used to calibrate it
+        // Number of rows and columns of the chessboard pattern used to calibrate it
         cv::Size chessboardSize;
+
+        // Size, in a user-defined unit, of the chessboard pattern squares
+        float chessboardSquareSize;
 
     public:
 
-        Calibrator()
+        Calibrator(int chessboardRows, int chessboardCols, float chessboardSquareSize = 2.54f) :
+            chessboardSize(chessboardRows, chessboardCols),
+            chessboardSquareSize(chessboardSquareSize)
         {
-            chessboardSize = cv::Size(9, 6);
+
         }
 
         void addStream(const Ptr<DataStream>& stream)

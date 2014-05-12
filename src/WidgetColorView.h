@@ -28,6 +28,15 @@ class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
             makeCurrent();
             texture = RenderUtils::createTexture(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
             frame = DataStream::newColorFrame();
+
+            stream->addNewFrameCallback(this, [this]() -> void { emit this->triggerRefresh(); });
+        }
+
+        ~WidgetColorView()
+        {
+            if (stream) stream->removeNewFrameCallback(this);
+
+            delete[] frame;
         }
 
         Ptr<DataStream> getStream() const override

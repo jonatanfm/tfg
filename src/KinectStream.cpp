@@ -14,7 +14,25 @@ KinectStream::KinectStream() :
 
 KinectStream::~KinectStream()
 {
+    if (sensor != nullptr) {
+        //if (updater.joinable()) updater.join();
+
+        if (hEvent != nullptr) ResetEvent(hEvent);
+
+        colorStream = nullptr;
+        depthStream = nullptr;
+
+        sensor->NuiShutdown();
+        sensor = nullptr;
+    }
+
     if (hEvent != nullptr) CloseHandle(hEvent);
+}
+
+void KinectStream::stop()
+{
+    SetEvent(hEvent);
+    AsyncStream::stop();
 }
 
 bool KinectStream::initialize(int sensorIndex)
@@ -90,27 +108,6 @@ bool KinectStream::initializeStreams()
     return true;
 }
 
-
-void KinectStream::release()
-{
-    if (sensor != nullptr) {
-        stopping = true;
-        SetEvent(hEvent);
-        AsyncStream::release();
-
-        //if (updater.joinable()) updater.join();
-
-        if (hEvent != nullptr) ResetEvent(hEvent);
-
-        colorStream = nullptr;
-        depthStream = nullptr;
-    
-        sensor->NuiShutdown();
-        sensor = nullptr;
-    }
-}
-
-
 void convertBGRA2RGBA(unsigned char* buffer, unsigned int size)
 {
     // Assumes size is multiple of 4
@@ -175,7 +172,7 @@ void KinectStream::updateSkeleton()
     skeletonBuffer = frame;
 }
 
-void KinectStream::run()
+void KinectStream::stream()
 {
     qDebug("[KinectStream] Thread started");
     HRESULT hr;

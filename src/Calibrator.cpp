@@ -82,7 +82,7 @@ void Calibrator::streamCalibration()
 
     // Reference chessboard points
     cv::vector< cv::vector<cv::Point3f> > objectPoints(1);
-    generateChessboardPoints(OUT objectPoints[0]);
+    generateChessboardPoints(OUT objectPoints[0], chessboardSquareSize);
 
     objectPoints.resize(objectPoints[0].size(), objectPoints[0]);
 
@@ -156,7 +156,7 @@ void Calibrator::systemCalibration()
 
     // Reference chessboard points, to use in the calibration
     cv::vector<cv::Point3f> objectPoints;
-    generateChessboardPoints(OUT objectPoints);
+    generateChessboardPoints(OUT objectPoints, chessboardSquareSize);
 
     // Size of the streams
     cv::Size imageSize(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
@@ -190,16 +190,17 @@ void Calibrator::systemCalibration()
         }
 
         // Convert each frame to gray, and find the points
-        int i;
-        for (i = 0; i < N; ++i) {
+        int count = 0;
+        for (int i = 0; i < N; ++i) {
             cv::cvtColor(frames[i], gray, CV_RGB2GRAY);
-            if (!findPoints(frames[i], gray, INOUT foundPoints[i])) break;
+            if (findPoints(frames[i], gray, INOUT foundPoints[i])) ++count;
+            else break;
         }
 
         // If one frame failed, remove the points dectedted in this frame and skip it
-        if (i < N) {
-            while (--i >= 0) {
-                foundPoints[i].pop_back();
+        if (count != N) {
+            while (count > 0) {
+                foundPoints[count--].pop_back();
             }
             continue;
         }

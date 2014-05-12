@@ -12,6 +12,7 @@
 
 #include "DataStream.h"
 
+// Stream which asynchronously runs a thread to read, process and write frames
 class AsyncStream : public DataStream, private QThread
 {
     public:
@@ -21,33 +22,27 @@ class AsyncStream : public DataStream, private QThread
             depthFrame(nullptr),
             skeletonFrame(nullptr),
             currentFrame(),
-            stopping(false)
+            stopping(false),
+            refs(1)
         {
-
+            setObjectName("AsyncStream");
         }
 
         virtual ~AsyncStream()
         {
-            release();
             if (colorFrame != nullptr) delete[] colorFrame;
             if (depthFrame != nullptr) delete[] depthFrame;
             if (skeletonFrame != nullptr) delete skeletonFrame;
         }
 
-        void release() override
-        {
-            if (this->isRunning()) {
-                stopping = true;
-                this->wait();
-            }
-        }
-
 
         void start()
         {
-            QThread::start();
+            if (!this->isRunning()) {
+                connect(this, SIGNAL(finished()), this, SLOT(performDelete()));
+                QThread::start();
+            }
         }
-
 
         virtual bool hasColor() const override
         {
@@ -155,11 +150,24 @@ class AsyncStream : public DataStream, private QThread
         DepthPixel* depthFrame;
         NUI_SKELETON_FRAME* skeletonFrame;
 
+        int refs;
         volatile bool stopping;
 
 
-        virtual void run() = 0;
+        void run() override
+        {
+            ++refs;
+            stream();
+        }
 
+        virtual void stream() = 0;
+
+
+        // Called to stop the thread
+        virtual void stop()
+        {
+            stopping = true;
+        }
 
         void beginFrame()
         {
@@ -169,6 +177,7 @@ class AsyncStream : public DataStream, private QThread
         void endFrame()
         {
             nextFrame.wakeAll();
+            callNewFrameCallbacks();
             mutex.unlock();
         }
 
@@ -191,10 +200,18 @@ class AsyncStream : public DataStream, private QThread
             ++currentFrame;
 
             nextFrame.wakeAll();
+            callNewFrameCallbacks();
             mutex.unlock();
         }
 
 
+    private slots:
+        virtual void performDelete() override
+        {
+            qDebug() << "Attempting delete of " << this;
+            stop();
+            if (CV_XADD(&refs, -1) <= 1) DataStream::performDelete();
+        }
 };
 
 

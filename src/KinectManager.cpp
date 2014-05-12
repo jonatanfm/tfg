@@ -33,9 +33,9 @@ KinectManager::KinectManager()
 
 KinectManager::~KinectManager()
 {
-    for (unsigned int i = 0; i < kinects.size(); ++i) {
+    /*for (unsigned int i = 0; i < kinects.size(); ++i) {
         if (kinects[i] != nullptr) kinects[i]->release();
-    }
+    }*/
 }
 
 void KinectManager::deviceStatusChanged(const OLECHAR* deviceId, bool connected)
@@ -61,7 +61,7 @@ void KinectManager::deviceStatusChanged(const OLECHAR* deviceId, bool connected)
             if (kinects[i] != nullptr && kinects[i]->sensor != nullptr) {
                 OLECHAR* id = kinects[i]->sensor->NuiDeviceConnectionId();
                 if (wcscmp(id, deviceId) == 0) {
-                    kinects[i]->release();
+                    kinects[i] = nullptr;
                     kinects.erase(kinects.begin() + i);
                     --i;
                 }

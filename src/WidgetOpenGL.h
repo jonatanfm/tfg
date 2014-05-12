@@ -45,6 +45,9 @@ class WidgetOpenGL : public QGLWidget
             return type;
         }
 
+    signals:
+        void triggerRefresh();
+
     protected:
 
         MainWindow& mainWindow;
@@ -89,6 +92,5 @@ class WidgetOpenGL : public QGLWidget
         void timerEvent(QTimerEvent *);
 
 };
-
 
 #endif

@@ -51,15 +51,6 @@ RecordedStream::RecordedStream(const std::string& color, const std::string& dept
 
 RecordedStream::~RecordedStream()
 {
-    release();
-}
-
-void RecordedStream::release()
-{
-    qDebug("Released!");
-    stopping = true;
-    AsyncStream::release();
-
     colorVideo.release();
     depthVideo.release();
     skeletonReader.close();
@@ -74,10 +65,10 @@ void RecordedStream::release()
     }
 }
 
-//static const int FPS = 30;
-static const int FPS = 1;
+static const int FPS = 30;
+//static const int FPS = 1;
 
-void RecordedStream::run()
+void RecordedStream::stream()
 {
     qDebug("[RecordedStream] Thread started");
 

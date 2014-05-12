@@ -11,6 +11,8 @@ WidgetOpenGL::WidgetOpenGL(MainWindow& mainWindow, QWidget *parent) :
 {
     setMinimumSize(320, 240);
     setMaximumSize(640, 480);
+
+    connect(this, SIGNAL(triggerRefresh()), this, SLOT(updateGL()));
 }
 
 WidgetOpenGL::~WidgetOpenGL()
@@ -32,7 +34,7 @@ void WidgetOpenGL::initializeGL()
 
     initialize();
 
-    timer.start(12, this);
+    //timer.start(12, this);
 }
 
 void WidgetOpenGL::resizeGL(int w, int h)

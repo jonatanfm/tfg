@@ -76,7 +76,7 @@
           </size>
          </property>
          <property name="inputMask">
-          <string notr="true">NNNN</string>
+          <string notr="true">XXXX</string>
          </property>
          <property name="text">
           <string notr="true">HFYU</string>
@@ -104,7 +104,7 @@
           </size>
          </property>
          <property name="inputMask">
-          <string notr="true">NNNN</string>
+          <string notr="true">XXXX</string>
          </property>
          <property name="text">
           <string notr="true">HFYU</string>

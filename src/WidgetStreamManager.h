@@ -107,7 +107,9 @@ class WidgetStreamManager : public QWidget, public SubWindowWidget
         {
             auto selected = list->selectedItems();
             if (selected.size() == 1) {
-                Calibrator* calibrator = new Calibrator();
+                Calibrator* calibrator = createCalibrator();
+                if (calibrator == nullptr) return;
+
                 calibrator->addStream(getStream(selected[0]));
                 mainWindow.startOperation(calibrator);
                 list->clearSelection();
@@ -118,7 +120,9 @@ class WidgetStreamManager : public QWidget, public SubWindowWidget
         {
             auto selected = list->selectedItems();
             if (selected.size() > 1) {
-                Calibrator* calibrator = new Calibrator();
+                Calibrator* calibrator = createCalibrator();
+                if (calibrator == nullptr) return;
+
                 for (int i = 0; i < selected.size(); ++i) {
                     calibrator->addStream(getStream(selected[i]));
 
@@ -133,8 +137,6 @@ class WidgetStreamManager : public QWidget, public SubWindowWidget
             }
         }
 
-
-
         /*void closeStreams()
         {
             auto idxs = list->selectionModel()->selectedIndexes();
@@ -144,6 +146,23 @@ class WidgetStreamManager : public QWidget, public SubWindowWidget
             }
             refresh();
         }*/
+
+
+    private:
+        Calibrator* createCalibrator()
+        {
+            bool ok;
+            QString sizes = QInputDialog::getText(this, "Chessboard Size", "Input the chessboard size:\n(Number of rows/cols - 1)", QLineEdit::Normal, "6x6", &ok);
+            if (!ok) return nullptr;
+
+            auto parts = sizes.trimmed().split(QRegularExpression("\\D"));
+            if (parts.size() != 2) return nullptr;
+
+            double sz = QInputDialog::getDouble(this, "Square Size", "Input the chessboard squares size, in cetimeters:", 2.54, 0.0, 1000.0, 2, &ok);
+            if (!ok) return nullptr;
+
+            return new Calibrator(parts[0].toInt(), parts[1].toInt(), static_cast<float>(sz));
+        }
 
 };
 

@@ -11,6 +11,8 @@
 // As a plus, implements OpenCV compatibility with "VideoCapture" class
 class DataStream : public cv::VideoCapture
 {
+    friend void Ptr<DataStream>::delete_obj();
+
     public:
 
         // Represents a frame number. Used to check if two frames are the same
@@ -69,11 +71,14 @@ class DataStream : public cv::VideoCapture
             unsigned short depth;
         };
 
+        typedef std::function< void() > Callback;
+
         // Size in bytes of a Color frame
         static const unsigned int COLOR_FRAME_SIZE = (COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT) * sizeof(ColorPixel);
 
         // Size in bytes of a Depth frame
         static const unsigned int DEPTH_FRAME_SIZE = (DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT) * sizeof(DepthPixel);
+
 
         DataStream() :
             colorIntrinsics(),
@@ -84,19 +89,13 @@ class DataStream : public cv::VideoCapture
 
         virtual ~DataStream()
         {
-            release();
+
         }
 
         // Returns true if the stream is active
         virtual bool isOpened() const override
         {
             return false;
-        }
-
-        // Closes the stream and releases
-        virtual void release() override
-        {
-
         }
 
         // Returns the display name of the stream
@@ -122,6 +121,20 @@ class DataStream : public cv::VideoCapture
         {
             return false;
         }
+
+        void addNewFrameCallback(void* owner, const Callback& callback)
+        {
+            newFrameCallbacks.push_back(std::make_pair(owner, callback));
+        }
+
+        void removeNewFrameCallback(void* owner)
+        {
+            for (auto it = newFrameCallbacks.begin(); it != newFrameCallbacks.end();) {
+                if (it->first == owner) it = newFrameCallbacks.erase(it);
+                else ++it;
+            }
+        }
+
 
         // Puts the calling thread to sleep until a new frame is available
         // Once available, it is awakened and the non-null pointers passed
@@ -180,8 +193,9 @@ class DataStream : public cv::VideoCapture
             depthIntrinsics = intrinsics;
         }
 
-    public:
 
+        // Signals the object to be deleted
+        // Returns true if "delete" should be called, or false if it will delete itself
         static void deleting(DataStream* stream); // Implemented in MainWindow.cpp, do not call manually
 
 
@@ -224,6 +238,12 @@ class DataStream : public cv::VideoCapture
         }
 
         // Unused
+        void release() override
+        {
+
+        }
+
+        // Unused
         virtual bool set(int propId, double value) override
         {
             return false;
@@ -247,23 +267,38 @@ class DataStream : public cv::VideoCapture
             return false;
         }
 
+
     protected:
+
+        std::vector< std::pair<void*, Callback> > newFrameCallbacks;
 
         IntrinsicParams colorIntrinsics;
         IntrinsicParams depthIntrinsics;
 
+        inline void callNewFrameCallbacks()
+        {
+            for (auto it = newFrameCallbacks.begin(); it != newFrameCallbacks.end(); ++it) {
+                it->second();
+            }
+        }
+
+        // Called when "delete" has been called on this object
+        // If returns true, the memory will be deallocated
+        virtual void performDelete()
+        {
+            qDebug() << "Deleting Stream " << this;
+            DataStream::deleting(this);
+            delete this; // Commit sucicide
+        }
+
+
 };
 
 
-// Override OpenCV's Ptr deleter for DataStreams, to close them
-// and remove them from MainWindow's "streams" vector, if it exists
+// Override OpenCV's Ptr deleter for DataStreams
 template<> inline void Ptr<DataStream>::delete_obj()
 {
-    if (obj != nullptr)
-    {
-        DataStream::deleting(obj);
-        delete obj;
-    }
+    if (obj != nullptr) obj->performDelete();
 }
 
 

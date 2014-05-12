@@ -22,12 +22,7 @@ static MainWindow* instance = nullptr;
 // Called when Ptr<DataStream> is deleting its content
 void DataStream::deleting(DataStream* obj)
 {
-    if (instance != nullptr)
-    {
-        qDebug() << "Closing Stream " << obj;
-        instance->closeStream(obj);
-    }
-    qDebug() << "Deleting Stream " << obj;
+    if (instance != nullptr) instance->closeStream(obj);
 }
 
 
@@ -378,10 +373,10 @@ void MainWindow::operationFinished()
             for (size_t k = 1; k < streams.size(); ++k) {
                 int j = findStreamIndex(streams[k]);
                 if (j != -1) {
-                    calibration.add(i, j, params[j - 1]);
+                    calibration.add(i, j, params[k - 1]);
                     qDebug() << "Calibrated streams " << i << " and " << j;
-                    qDebug() << QString::fromStdString("R: " + Utils::matToString<double>(params[j - 1].R));
-                    qDebug() << QString::fromStdString("T: " + Utils::matToString<double>(params[j - 1].T));
+                    qDebug() << QString::fromStdString("R: " + Utils::matToString<double>(params[k - 1].R));
+                    qDebug() << QString::fromStdString("T: " + Utils::matToString<double>(params[k - 1].T));
                 }
             }
         }
