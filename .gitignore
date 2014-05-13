@@ -4,6 +4,7 @@ build/
 
 src/release/
 src/debug/
+src/ipch/
 
 *.pro.*
 

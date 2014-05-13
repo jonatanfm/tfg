@@ -2,6 +2,8 @@
 
 #include "Utils.h"
 
+#include "SkeletonIO.h"
+
 FixedFrameStream::FixedFrameStream(const std::string& colorFile, const std::string& depthFile, const std::string& skeletonFile) :
     colorFrame(nullptr),
     depthFrame(nullptr),
@@ -26,7 +28,12 @@ FixedFrameStream::FixedFrameStream(const std::string& colorFile, const std::stri
 
     if (!skeletonFile.empty()) {
         // TODO
-        if (name.empty()) name = skeletonFile;
+        SkeletonIO reader; 
+		
+		if (reader.openFileForReading(skeletonFile.c_str())) { 
+			reader.readFrame(skeletonFrame); 
+			if (name.empty()) name = skeletonFile; 
+		}
     }
 
     if (name.empty()) name = "Unnamed";
