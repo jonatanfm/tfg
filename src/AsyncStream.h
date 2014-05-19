@@ -13,8 +13,10 @@
 #include "DataStream.h"
 
 // Stream which asynchronously runs a thread to read, process and write frames
-class AsyncStream : public DataStream, private QThread
+class AsyncStream : private QThread, public DataStream
 {
+    Q_OBJECT
+
     public:
 
         AsyncStream() :
@@ -39,7 +41,7 @@ class AsyncStream : public DataStream, private QThread
         void start()
         {
             if (!this->isRunning()) {
-                connect(this, SIGNAL(finished()), this, SLOT(performDelete()));
+                connect(this, SIGNAL(finished()), this, SLOT(threadFinished()));
                 QThread::start();
             }
         }
@@ -57,6 +59,20 @@ class AsyncStream : public DataStream, private QThread
         virtual bool hasSkeleton() const override
         {
             return skeletonFrame != nullptr;
+        }
+
+        void addNewFrameCallback(void* owner, const Callback& callback) override
+        {
+            mutex.lock();
+            DataStream::addNewFrameCallback(owner, callback);
+            mutex.unlock();
+        }
+
+        void removeNewFrameCallback(void* owner) override
+        {
+            mutex.lock();
+            DataStream::removeNewFrameCallback(owner);
+            mutex.unlock();
         }
 
 
@@ -177,7 +193,7 @@ class AsyncStream : public DataStream, private QThread
         void endFrame()
         {
             nextFrame.wakeAll();
-            callNewFrameCallbacks();
+            callNewFrameCallbacks(colorFrame, depthFrame, skeletonFrame);
             mutex.unlock();
         }
 
@@ -200,17 +216,22 @@ class AsyncStream : public DataStream, private QThread
             ++currentFrame;
 
             nextFrame.wakeAll();
-            callNewFrameCallbacks();
+            callNewFrameCallbacks(colorFrame, depthFrame, skeletonFrame);
             mutex.unlock();
         }
 
-
-    private slots:
         virtual void performDelete() override
         {
             qDebug() << "Attempting delete of " << this;
             stop();
             if (CV_XADD(&refs, -1) <= 1) DataStream::performDelete();
+        }
+
+    private slots:
+
+        void threadFinished()
+        {
+            performDelete();
         }
 };
 

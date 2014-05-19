@@ -15,6 +15,7 @@
 
 #include "ModeMeasure.h"
 
+#include "otger/DepthCorrector.h"
 
 
 static MainWindow* instance = nullptr;
@@ -65,24 +66,34 @@ MainWindow::~MainWindow()
 
 void MainWindow::initialize()
 {
-    for (int i = 0; i < kinectManager.getSensorCount(); ++i) {
-        openKinect(i);
-    }
-
     std::string lineStr, str;
     std::ifstream file("config.txt");
-    while (file && std::getline(file, lineStr)) {
-        std::istringstream line(lineStr);
-        if (line >> str) {
-            if (str == "stream") {
-                if (line >> str) {
-                    if (str == "fixed") {
-                        std::string sColor, sDepth, sSkeleton;
-                        line >> sColor >> sDepth >> sSkeleton;
-                        addStream(new FixedFrameStream(sColor, sDepth, sSkeleton));
+    if (file) {
+        while (file && std::getline(file, lineStr)) {
+            std::istringstream line(lineStr);
+            if (line >> str) {
+                if (str.empty() || str[0] == '#') continue;
+                if (str == "stream") {
+                    if (line >> str) {
+                        if (str == "fixed") {
+                            std::string sColor, sDepth, sSkeleton;
+                            line >> sColor >> sDepth >> sSkeleton;
+                            addStream(new FixedFrameStream(sColor, sDepth, sSkeleton));
+                        }
                     }
                 }
+                else if (str == "kinects") {
+                    for (int i = 0; i < kinectManager.getSensorCount(); ++i) {
+                        openKinect(i);
+                    }
+                }
+                else if (str == "sceneview") openSceneView();
             }
+        }
+    }
+    else { // No config file, just open connected kinects
+        for (int i = 0; i < kinectManager.getSensorCount(); ++i) {
+            openKinect(i);
         }
     }
 }
@@ -127,6 +138,36 @@ void MainWindow::addSubWindow(SubWindowWidget* widget, const QString& title)
     win->show();
 }
 
+void MainWindow::toggleSkeletonsOverlay(WidgetOpenGL* widget)
+{
+    if (widget == nullptr) return;
+
+    if (widget->hasOverlay("skeleton")) {
+        widget->removeOverlay("skeleton");
+    }
+    else {
+        if (widget->is<WidgetColorView>()) {
+            widget->addOverlay("skeleton", [](WidgetOpenGL* w) -> bool {
+                NUI_SKELETON_FRAME skeleton;
+                if (((WidgetColorView*)w)->getStream()->getSkeletonFrame(skeleton)) {
+                    RenderUtils::drawSkeletons(skeleton, true);
+                }
+                return true;
+            });
+        }
+        else if (widget->is<WidgetDepthView>()) {
+            widget->addOverlay("skeleton", [](WidgetOpenGL* w) -> bool {
+                NUI_SKELETON_FRAME skeleton;
+                if (((WidgetDepthView*)w)->getStream()->getSkeletonFrame(skeleton)) {
+                    RenderUtils::drawSkeletons(skeleton, false);
+                }
+                return true;
+            });
+        }
+    }
+    changedSubwindow(mdiArea->currentSubWindow());
+}
+
 void MainWindow::setDrawSkeletons(bool draw)
 {
     drawSkeletons = draw;
@@ -134,40 +175,24 @@ void MainWindow::setDrawSkeletons(bool draw)
     QMdiSubWindow* win = mdiArea->currentSubWindow();
     if (win == nullptr) return;
 
-    WidgetOpenGL* widget = dynamic_cast<WidgetOpenGL*>(win->widget());
-    if (widget != nullptr) {
-        if (widget->hasOverlay("skeleton")) {
-            widget->removeOverlay("skeleton");
-        }
-        else {
-            switch (widget->getType()) {
-                case WidgetOpenGL::ColorFrameView:
-                    widget->addOverlay("skeleton", [] (WidgetOpenGL* w) -> bool {
-                        NUI_SKELETON_FRAME skeleton;
-                        if (((WidgetColorView*)w)->getStream()->getSkeletonFrame(skeleton)) {
-                            RenderUtils::drawSkeletons(skeleton, true);
-                        }
-                        return true;
-                    });
-                    break;
-
-                case WidgetOpenGL::DepthFrameView:
-                    widget->addOverlay("skeleton", [] (WidgetOpenGL* w) -> bool {
-                        NUI_SKELETON_FRAME skeleton;
-                        if (((WidgetDepthView*)w)->getStream()->getSkeletonFrame(skeleton)) {
-                            RenderUtils::drawSkeletons(skeleton, false);
-                        }
-                        return true;
-                    });
-                    break;
-            }
-        }
-    }
+    toggleSkeletonsOverlay(dynamic_cast<WidgetOpenGL*>(win->widget()));
 }
 
-void MainWindow::changedSubwindow(QMdiSubWindow* /*win*/)
+void MainWindow::changedSubwindow(QMdiSubWindow* win)
 {
-
+    if (win == nullptr) {
+        actionDrawSkeleton->setEnabled(false);
+    }
+    else {
+        WidgetOpenGL* w = dynamic_cast<WidgetOpenGL*>(win->widget());
+        if (w != nullptr) {
+            if (w->is<WidgetColorView>() || w->is<WidgetDepthView>()) {
+                actionDrawSkeleton->setEnabled(true);
+                actionDrawSkeleton->setChecked(w->hasOverlay("skeleton"));
+            }
+            else actionDrawSkeleton->setEnabled(false);
+        }
+    }
 }
 
 
@@ -218,6 +243,14 @@ int MainWindow::addStream(const Ptr<DataStream>& stream)
         streams.push_back(stream);
     }
 
+    #ifdef HAS_BULLET
+        if (stream->hasSkeleton()) {
+            stream.obj->addNewFrameCallback(&world, [this] (const DataStream::ColorPixel* color, const DataStream::DepthPixel* depth, const NUI_SKELETON_FRAME* skeleton) -> void {
+                this->getWorld().setSkeleton(skeleton);
+            });
+        }
+    #endif
+
     openStreamWindows(idx);
 
     *stream.refcount -= 1; // Convert the reference in "streams" to a weak reference
@@ -239,12 +272,14 @@ void MainWindow::openStreamWindows(int i)
     {
         WidgetColorView* colorView = new WidgetColorView(*this, stream);
         addSubWindow(colorView, "#" + QString::number(i) + " - " + name + " - Color");
+        toggleSkeletonsOverlay(colorView);
     }
 
     if (stream->hasDepth())
     {
         WidgetDepthView* depthView = new WidgetDepthView(*this, stream);
         addSubWindow(depthView, "#" + QString::number(i) + " - " + name + " - Depth");
+        toggleSkeletonsOverlay(depthView);
     }
 }
 
@@ -281,6 +316,18 @@ void MainWindow::openChessboardFinder()
         }
     }
 }
+
+void MainWindow::openDepthCorrector()
+{
+    SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
+    if (w != nullptr) {
+        Ptr<DataStream> stream = w->getStream();
+        if (stream != nullptr && stream->hasDepth()) {
+            addStream(new DepthCorrectorStream(stream));
+        }
+    }
+}
+
 
 
 void MainWindow::openStreamManager()
@@ -449,14 +496,17 @@ void MainWindow::setupUi()
 
         menu->addSeparator();
 
-        ACTION_2("Toggle Draw Skeletons", triggered(bool), setDrawSkeletons(bool));
-        //action->setCheckable(true);
-        //action->setChecked(true);
+        ACTION_2("Draw Skeletons", triggered(bool), setDrawSkeletons(bool));
+        action->setCheckable(true);
+        action->setChecked(false);
+        actionDrawSkeleton = action;
     }
 
     MENU("Actions");
     {
         ACTION("Find chessboards", openChessboardFinder());
+
+        ACTION("Correct depth", openDepthCorrector());
 
         ACTION("Record", openRecorder());
     }

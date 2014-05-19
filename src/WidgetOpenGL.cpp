@@ -7,7 +7,7 @@
 WidgetOpenGL::WidgetOpenGL(MainWindow& mainWindow, QWidget *parent) :
     QGLWidget(parent),
     mainWindow(mainWindow),
-    type(OtherView)
+    fps(0)
 {
     setMinimumSize(320, 240);
     setMaximumSize(640, 480);
@@ -34,7 +34,7 @@ void WidgetOpenGL::initializeGL()
 
     initialize();
 
-    //timer.start(12, this);
+    if (fps > 0) timer.start(1000 / fps, this);
 }
 
 void WidgetOpenGL::resizeGL(int w, int h)
@@ -58,8 +58,8 @@ void WidgetOpenGL::paintGL()
     }
     else {
         glColor3f(1.0f, 0.0f, 0.0f);
-        RenderUtils::drawLine(-0.95f, -0.95f, 0.95f, 0.95f);
-        RenderUtils::drawLine(-0.95f, 0.95f, 0.95f, -0.95f);
+        RenderUtils::drawLine(Point2D(-0.95f, -0.95f), Point2D(0.95f,  0.95f));
+        RenderUtils::drawLine(Point2D(-0.95f,  0.95f), Point2D(0.95f, -0.95f));
     }
 
     //swapBuffers();

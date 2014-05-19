@@ -60,6 +60,8 @@ class KinectStream : public AsyncStream
         HANDLE colorStream;
         HANDLE depthStream;
 
+        INuiCoordinateMapper* mapper;
+
         ColorPixel colorBuffer[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
         DepthPixel depthBuffer[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
         NUI_SKELETON_FRAME skeletonBuffer;

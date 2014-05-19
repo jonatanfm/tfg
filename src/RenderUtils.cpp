@@ -34,19 +34,37 @@ void RenderUtils::drawRect(float x, float y, float w, float h, float tx, float t
 }
 
 
-void RenderUtils::drawPoint(float x, float y, float radius)
+void RenderUtils::drawPoint(const Point2D& p, float radius)
 {
-    drawRect(x - radius, y - radius, 2.0f * radius, 2.0f * radius);
+    drawRect(p.x - radius, p.y - radius, 2.0f * radius, 2.0f * radius);
 }
 
-void RenderUtils::drawLine(float x1, float y1, float x2, float y2, float lineWidth)
+void RenderUtils::drawPoint(const Point3D& p, float radius)
+{
+    glBegin(GL_LINES);
+        glVertex3f(p.x, p.y, p.z);
+        glVertex3f(p.x, p.y, p.z);
+    glEnd();
+}
+
+void RenderUtils::drawLine(const Point2D& p1, const Point2D& p2, float lineWidth)
 {
     glLineWidth(lineWidth);
     glBegin(GL_LINES);
-        glVertex2f(x1, y1);
-        glVertex2f(x2, y2);
+        glVertex2f(p1.x, p1.y);
+        glVertex2f(p2.x, p2.y);
     glEnd();
 }
+
+void RenderUtils::drawLine(const Point3D& p1, const Point3D& p2, float lineWidth)
+{
+    glLineWidth(lineWidth);
+    glBegin(GL_LINES);
+        glVertex3f(p1.x, p1.y, p1.z);
+        glVertex3f(p2.x, p2.y, p2.z);
+    glEnd();
+}
+
 
 
 void RenderUtils::setColor(float* color)
@@ -73,44 +91,44 @@ void RenderUtils::setTexture(Texture tex)
 
 #pragma region Skeleton Rendering
 
-Point2D skeletonToDepthFrame(Vector4 skelPoint, int w, int h)
+Point3D skeletonToDepthFrame(const Vector4& skelPoint)
 {
     LONG x, y;
     USHORT depth;
     NuiTransformSkeletonToDepthImage(skelPoint, &x, &y, &depth, NUI_IMAGE_RESOLUTION_640x480);
-    Point2D pt;
-    pt.x = static_cast<float>(x * 640) / w;
-    pt.y = static_cast<float>(y * 480) / h;
-    return pt;
+    //return Point3D(float(x * 640) / 640, float(y * 480) / 480, 0.0f);
+    return Point3D(float(x), float(y), 0.0f);
 }
 
-Point2D skeletonToColorFrame(Vector4 skelPoint, int w, int h)
+Point3D skeletonToColorFrame(const Vector4& skelPoint)
 {
     LONG x, y;
     USHORT depth;
     NuiTransformSkeletonToDepthImage(skelPoint, &x, &y, &depth, NUI_IMAGE_RESOLUTION_640x480);
-    Point2D pt;
-    pt.x = static_cast<float>(x * 640) / w;
-    pt.y = static_cast<float>(y * 480) / h;
 
-    // TODO
-    /*NuiImageGetColorPixelCoordinatesFromDepthPixel(
+    NuiImageGetColorPixelCoordinatesFromDepthPixelAtResolution(
+        NUI_IMAGE_RESOLUTION_640x480,
         NUI_IMAGE_RESOLUTION_640x480,
         nullptr,
-        pt.x,
-        pt.y,
+        x,
+        y,
         depth,
-        &pt.x,
-        &pt.p
-    );*/
-    
-    return pt;
+        &x,
+        &y
+    );
+
+    return Point3D(float(x), float(y), 0.0f);
+}
+
+Point3D skeletonTo3D(const Vector4& skelPoint)
+{
+    return Point3D(-skelPoint.x, skelPoint.y, skelPoint.z);
 }
 
 static float COLOR_BONE_TRACKED[] = { 0.0f, 0.5f, 0.0f, 1.0f };
 static float COLOR_BONE_INFERRED[] = { 0.5f, 0.0f, 0.0f, 1.0f };
 
-void RenderUtils::drawBone(const NUI_SKELETON_DATA& skel, Point2D* points, NUI_SKELETON_POSITION_INDEX joint0, NUI_SKELETON_POSITION_INDEX joint1)
+void RenderUtils::drawBone(const NUI_SKELETON_DATA& skel, Point3D* points, NUI_SKELETON_POSITION_INDEX joint0, NUI_SKELETON_POSITION_INDEX joint1)
 {
     NUI_SKELETON_POSITION_TRACKING_STATE
         s0 = skel.eSkeletonPositionTrackingState[joint0],
@@ -137,19 +155,17 @@ void RenderUtils::drawBone(const NUI_SKELETON_DATA& skel, Point2D* points, NUI_S
         RenderUtils::setColor(COLOR_BONE_INFERRED);
     }
 
-    Point2D& p0 = points[joint0];
-    Point2D& p1 = points[joint1];
+    Point3D& p0 = points[joint0];
+    Point3D& p1 = points[joint1];
 
-    RenderUtils::drawLine(p0.x, p0.y, p1.x, p1.y);
+    RenderUtils::drawLine(p0, p1);
 }
 
-void RenderUtils::drawSkeleton(const NUI_SKELETON_DATA& skel, bool inColorFrame)
+void RenderUtils::drawSkeleton(const NUI_SKELETON_DATA& skel, SkeletonPointConverter pointConverter)
 {
-    auto convertCoordinates = inColorFrame ? skeletonToColorFrame : skeletonToDepthFrame;
-
-    Point2D points[NUI_SKELETON_POSITION_COUNT];
+    Point3D points[NUI_SKELETON_POSITION_COUNT];
     for (int i = 0; i < NUI_SKELETON_POSITION_COUNT; ++i) {
-        points[i] = convertCoordinates(skel.SkeletonPositions[i], 640, 480);
+        points[i] = pointConverter(skel.SkeletonPositions[i]);
     }
 
     // Torso
@@ -190,23 +206,41 @@ void RenderUtils::drawSkeleton(const NUI_SKELETON_DATA& skel, bool inColorFrame)
         else if (state == NUI_SKELETON_POSITION_INFERRED) {
             RenderUtils::setColor(COLOR_BONE_INFERRED);
         }
-        RenderUtils::drawPoint(points[i].x, points[i].y, 3.0f);
+        RenderUtils::drawPoint(points[i], 3.0f);
     }
 }
 
 void RenderUtils::drawSkeletons(const NUI_SKELETON_FRAME& frame, bool inColorFrame)
 {
+    SkeletonPointConverter pointConverter = inColorFrame ? skeletonToColorFrame : skeletonToDepthFrame;
     for (int i = 0; i < NUI_SKELETON_COUNT; ++i) {
         NUI_SKELETON_TRACKING_STATE state = frame.SkeletonData[i].eTrackingState;
         if (NUI_SKELETON_TRACKED == state) {
-            drawSkeleton(frame.SkeletonData[i], inColorFrame);
+            drawSkeleton(frame.SkeletonData[i], pointConverter);
         }
         else if (NUI_SKELETON_POSITION_ONLY == state) {
-            Point2D pos = skeletonToDepthFrame(frame.SkeletonData[i].Position, 640, 480);
+            Point3D pos = pointConverter(frame.SkeletonData[i].Position);
             RenderUtils::setColor(1.0f, 0.0f, 0.0f);
-            RenderUtils::drawPoint(pos.x, pos.y, 5.0f);
+            RenderUtils::drawPoint(pos, 5.0f);
         }
     }
 }
+
+
+void RenderUtils::drawSkeletons3D(const NUI_SKELETON_FRAME& frame)
+{
+    for (int i = 0; i < NUI_SKELETON_COUNT; ++i) {
+        NUI_SKELETON_TRACKING_STATE state = frame.SkeletonData[i].eTrackingState;
+        if (NUI_SKELETON_TRACKED == state) {
+            drawSkeleton(frame.SkeletonData[i], skeletonTo3D);
+        }
+        else if (NUI_SKELETON_POSITION_ONLY == state) {
+            Point3D pos = skeletonTo3D(frame.SkeletonData[i].Position);
+            RenderUtils::setColor(1.0f, 0.0f, 0.0f);
+            RenderUtils::drawPoint(pos, 5.0f);
+        }
+    }
+}
+
 
 #pragma endregion

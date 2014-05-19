@@ -14,6 +14,9 @@
 class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 {
     private:
+        QMutex skeletonMutex;
+        NUI_SKELETON_FRAME skeleton;
+
         std::vector< Ptr<DataStream> > streams;
 
         std::vector<cv::Mat> transforms;
@@ -45,7 +48,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
             keys(),
             mouse()
         {
-            type = DepthFrameView;
+            setFPS(60);
 
             cam.y = 2.0f;
             cam.z = 4.0f;
@@ -53,11 +56,21 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
             auto& streamList = mainWindow.getStreams();
             
-            auto& calib = mainWindow.getCalibration().getCalibratedWith(0);
-            for (int i = 0; i < int(calib.size()); ++i) {
-                streams.push_back(streamList[calib[i].first]);
-                transforms.push_back(calib[i].second.getTransformMatrix().t());
-                //qDebug() << QString::fromStdString(Utils::matToString<float>(calib[i].second.getTransformMatrix()));
+            if (streamList.size() > 0) {
+                auto baseStream = streamList[0];
+                streams.push_back(baseStream);
+                baseStream->addNewFrameCallback(this, [this](const DataStream::ColorPixel*, const DataStream::DepthPixel*, const NUI_SKELETON_FRAME* skeleton) -> void {
+                    skeletonMutex.lock();
+                    memcpy(&this->skeleton, skeleton, sizeof(NUI_SKELETON_FRAME));
+                    skeletonMutex.unlock();
+                });
+
+                auto& calib = mainWindow.getCalibration().getCalibratedWith(0);
+                for (int i = 0; i < int(calib.size()); ++i) {
+                    streams.push_back(streamList[calib[i].first]);
+                    transforms.push_back(calib[i].second.getTransformMatrix().t());
+                    //qDebug() << QString::fromStdString(Utils::matToString<float>(calib[i].second.getTransformMatrix()));
+                }
             }
 
             setFocusPolicy(Qt::StrongFocus);
@@ -65,6 +78,8 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
         virtual ~WidgetSceneView()
         {
+            if (streams.size() > 0) streams[0]->removeNewFrameCallback(this);
+
             makeCurrent();
 
             gluDeleteQuadric(quadric);
@@ -118,15 +133,31 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
             drawCam();
 
             // Draw the other cameras
-            for (int i = 0; i < int(streams.size()); ++i) {
+            for (int i = 1; i < int(streams.size()); ++i) {
                 glColor3f(0.0f, 1.0f, 1.0f);
                 glPushMatrix();
-                    glMultMatrixf((GLfloat*)transforms[i].ptr());
+                    glMultMatrixf((GLfloat*)transforms[i - 1].ptr());
                     drawCam();
                 glPopMatrix();
             }
 
             glDisable(GL_LIGHTING);
+
+            // Draw objects
+            #ifdef HAS_BULLET
+            {
+                World& world = mainWindow.getWorld();
+                world.render();
+            }
+            #endif
+
+            skeletonMutex.lock();
+            if (skeleton.dwFrameNumber != 0) {
+                glPushMatrix();
+                RenderUtils::drawSkeletons3D(skeleton);
+                glPopMatrix();
+            }
+            skeletonMutex.unlock();
 
             return true;
         }

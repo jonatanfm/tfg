@@ -24,14 +24,14 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
             WidgetOpenGL(mainWindow),
             stream(stream)
         {
-            type = DepthFrameView;
-
             makeCurrent();
             texture = RenderUtils::createTexture(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT);
             buffer = new DataStream::ColorPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
             frame = DataStream::newDepthFrame();
 
-            stream->addNewFrameCallback(this, [this]() -> void { emit this->triggerRefresh(); });
+            stream->addNewFrameCallback(this, [this](const DataStream::ColorPixel*, const DataStream::DepthPixel*, const NUI_SKELETON_FRAME*) -> void {
+                emit this->triggerRefresh();
+            });
         }
 
         ~WidgetDepthView()

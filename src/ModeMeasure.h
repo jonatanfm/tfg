@@ -24,7 +24,7 @@ class MeasureMode : public Mode
 
         void mousePressEvent(WidgetOpenGL* w, QMouseEvent* ev)
         {
-            if (w->getType() == WidgetOpenGL::DepthFrameView) {
+            if (w->is<WidgetDepthView>()) {
 
             }
         }
@@ -32,7 +32,7 @@ class MeasureMode : public Mode
 
         void mouseReleaseEvent(WidgetOpenGL* w, QMouseEvent* ev)
         {
-            if (w->getType() == WidgetOpenGL::DepthFrameView) {
+            if (w->is<WidgetDepthView>()) {
 
             }
         }
@@ -40,7 +40,7 @@ class MeasureMode : public Mode
 
         void moveEvent(WidgetOpenGL* w, QMoveEvent* ev)
         {
-            if (w->getType() == WidgetOpenGL::DepthFrameView) {
+            if (w->is<WidgetDepthView>()) {
 
             }
         }

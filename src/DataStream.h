@@ -71,7 +71,7 @@ class DataStream : public cv::VideoCapture
             unsigned short depth;
         };
 
-        typedef std::function< void() > Callback;
+        typedef std::function< void (const ColorPixel* color, const DepthPixel* depth, const NUI_SKELETON_FRAME* skeleton) > Callback;
 
         // Size in bytes of a Color frame
         static const unsigned int COLOR_FRAME_SIZE = (COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT) * sizeof(ColorPixel);
@@ -122,12 +122,12 @@ class DataStream : public cv::VideoCapture
             return false;
         }
 
-        void addNewFrameCallback(void* owner, const Callback& callback)
+        virtual void addNewFrameCallback(void* owner, const Callback& callback)
         {
             newFrameCallbacks.push_back(std::make_pair(owner, callback));
         }
 
-        void removeNewFrameCallback(void* owner)
+        virtual void removeNewFrameCallback(void* owner)
         {
             for (auto it = newFrameCallbacks.begin(); it != newFrameCallbacks.end();) {
                 if (it->first == owner) it = newFrameCallbacks.erase(it);
@@ -275,10 +275,10 @@ class DataStream : public cv::VideoCapture
         IntrinsicParams colorIntrinsics;
         IntrinsicParams depthIntrinsics;
 
-        inline void callNewFrameCallbacks()
+        inline void callNewFrameCallbacks(const ColorPixel* color, const DepthPixel* depth, const NUI_SKELETON_FRAME* skeleton)
         {
             for (auto it = newFrameCallbacks.begin(); it != newFrameCallbacks.end(); ++it) {
-                it->second();
+                it->second(color, depth, skeleton);
             }
         }
 

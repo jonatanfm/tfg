@@ -24,7 +24,7 @@ class WidgetOpenGL : public QGLWidget
 
         enum Type
         {
-            ColorFrameView,
+            TypeColorFrameView,
             DepthFrameView,
             OtherView
         };
@@ -40,9 +40,10 @@ class WidgetOpenGL : public QGLWidget
 
         void removeAllOverlays();
 
-        Type getType() const
+        template<class T>
+        inline bool is() const
         {
-            return type;
+            return dynamic_cast<const T*>(this) != nullptr;
         }
 
     signals:
@@ -52,7 +53,10 @@ class WidgetOpenGL : public QGLWidget
 
         MainWindow& mainWindow;
 
-        Type type;
+        void setFPS(int fps)
+        {
+            this->fps = fps;
+        }
 
         virtual void initialize()
         {
@@ -74,6 +78,8 @@ class WidgetOpenGL : public QGLWidget
         void moveEvent(QMoveEvent* ev) override;
 
     private:
+
+        int fps;
 
         QBasicTimer timer;
 

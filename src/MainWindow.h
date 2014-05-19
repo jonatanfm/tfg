@@ -19,6 +19,10 @@
 
 #include "Mode.h"
 
+#ifdef HAS_BULLET
+    #include "otger/World.h"
+#endif
+
 class App;
 class Calibrator;
 
@@ -77,6 +81,19 @@ class MainWindow : public QMainWindow
 
         SystemCalibration calibration;
 
+        #ifdef HAS_BULLET
+            private:
+                World world;
+
+            public:
+                inline World& getWorld()
+                {
+                    return world;
+                }
+
+            private:
+        #endif
+
         Ptr<Mode> mode;
 
         Ptr<AsyncOperation> currentOperation;
@@ -84,6 +101,8 @@ class MainWindow : public QMainWindow
         QStatusBar* statusBar;
         QLabel* statusBarText;
         QProgressBar* statusBarProgress;
+
+        QAction* actionDrawSkeleton;
 
         QMdiArea* mdiArea;
 
@@ -103,6 +122,8 @@ class MainWindow : public QMainWindow
         void openKinect(int i);
 
         void setMode(int index, Mode* mode);
+
+        void toggleSkeletonsOverlay(WidgetOpenGL* widget);
 
         int findStreamIndex(const Ptr<DataStream>& stream);
 
@@ -127,6 +148,7 @@ class MainWindow : public QMainWindow
         void openSceneView();
 
         void openChessboardFinder();
+        void openDepthCorrector();
 
         void changedSubwindow(QMdiSubWindow* win);
 
@@ -138,7 +160,6 @@ class MainWindow : public QMainWindow
         void setStatusText(QString);
         void setStatusProgress(int, int);
         void operationFinished();
-
 };
 
 

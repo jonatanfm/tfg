@@ -1,15 +1,17 @@
-#ifndef WIDGETCOLORVIEW_H
-#define WIDGETCOLORVIEW_H
+#ifndef WIDGETAUGMENTEDVIEW_H
+#define WIDGETAUGMENTEDVIEW_H
 
 #pragma once
 
-#include "globals.h"
+#include "../globals.h"
 
-#include "RenderUtils.h"
-#include "DataStream.h"
-#include "WidgetOpenGL.h"
+#include "../SubWindow.h"
+#include "../WidgetOpenGL.h"
+#include "../RenderUtils.h"
 
-class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
+#include "../MainWindow.h"
+
+class WidgetAugmentedView : public WidgetOpenGL, public SubWindowWidget
 {
     private:
         Ptr<DataStream> stream;
@@ -19,10 +21,12 @@ class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
         DataStream::ColorPixel* frame;
 
     public:
-        WidgetColorView(MainWindow& mainWindow, Ptr<DataStream> stream) :
-            WidgetOpenGL(mainWindow),
-            stream(stream)
+        WidgetAugmentedView(MainWindow& mainWindow) :
+            WidgetOpenGL(mainWindow)
         {
+            auto& streams = mainWindow.getStreams();
+            if (streams.size() > 0) stream = streams[0];
+
             makeCurrent();
             texture = RenderUtils::createTexture(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
             frame = DataStream::newColorFrame();
@@ -32,7 +36,7 @@ class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
             });
         }
 
-        ~WidgetColorView()
+        ~WidgetAugmentedView()
         {
             if (stream) stream->removeNewFrameCallback(this);
 
@@ -65,9 +69,14 @@ class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
             RenderUtils::drawRect(0.0f, 0.0f, COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
             RenderUtils::setTexture(0);
 
+            World& world = mainWindow.getWorld();
+
+            // TODO
+
             return true;
         }
 
 };
+
 
 #endif

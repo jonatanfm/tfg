@@ -34,7 +34,8 @@ SOURCES += \
     Calibrator.cpp \
     MainWindow.cpp \
     WidgetOpenGL.cpp \
-    WidgetRecorder.cpp
+    WidgetRecorder.cpp \
+    otger/DepthCorrector.cpp
 
 HEADERS += \
     globals.h \
@@ -60,9 +61,34 @@ HEADERS += \
     WidgetDepthView.h \
     WidgetSceneView.h \
     WidgetRecorder.h \
-    WidgetStreamManager.h
+    WidgetStreamManager.h \
+    otger/DepthCorrector.h
 
 FORMS += WidgetRecorder.ui
+
+exists(../config.pro) {
+    include(../config.pro)
+}
+
+!isEmpty(WITH_BULLET) {
+    message("Configured with Bullet")
+
+    SOURCES += \
+        otger/World.cpp
+        
+#        otger/GLDebugDrawer.cpp
+        
+    HEADERS += \
+        otger/World.h \
+        otger/WidgetAugmentedView.h
+        
+#        otger/GLDebugDrawer.h
+    
+    INCLUDEPATH += $$(BULLET_DIR)/src
+    LIBS += -L$$(BULLET_DIR)/lib
+    
+    QMAKE_CXXFLAGS += -DHAS_BULLET
+}
 
 
 MOC_DIR = $$OBJECTS_DIR

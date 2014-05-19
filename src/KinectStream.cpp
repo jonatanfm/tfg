@@ -55,13 +55,22 @@ bool KinectStream::initializeById(const OLECHAR* id)
 
 bool KinectStream::initializeStreams()
 {
-    if (FAILED(sensor->NuiInitialize(
+    HRESULT res;
+
+    res = sensor->NuiInitialize(
         NUI_INITIALIZE_FLAG_USES_COLOR |
         NUI_INITIALIZE_FLAG_USES_DEPTH |
         NUI_INITIALIZE_FLAG_USES_SKELETON
-    )))
+    );
+    if (FAILED(res))
     {
-        qDebug("Unable to initialize a kinect!");
+        qDebug("Unable to initialize kinect! (Code %d)", res);
+        return false;
+    }
+
+    if (FAILED(sensor->NuiGetCoordinateMapper(&mapper)))
+    {
+        qDebug("Unable to get coordinade mapper for kinect!");
         return false;
     }
 
