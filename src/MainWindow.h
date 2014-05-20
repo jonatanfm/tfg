@@ -187,6 +187,8 @@ class MainWindow : public QMainWindow
         void setStatusProgress(int, int);
         void operationFinished();
 
+		void skeletonTraking();
+
 };
 
 

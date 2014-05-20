@@ -17,6 +17,8 @@
 
 #include "otger/DepthCorrector.h"
 
+#include "jonatan/SkeletonStudy.h"
+
 
 static MainWindow* instance = nullptr;
 
@@ -427,6 +429,19 @@ void MainWindow::operationFinished()
     currentOperation = nullptr;
 }
 
+void MainWindow::skeletonTraking()
+{
+    SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
+    if (w != nullptr) {
+        Ptr<DataStream> stream = w->getStream();
+        if (stream != nullptr) {
+            
+			/*addStream(new ChessboardDetectorStream(stream, 6, 6));*/
+            
+        }
+    }
+}
+
 
 void MainWindow::startOperation(Operation* op, std::function< void() > callback)
 {
@@ -525,6 +540,8 @@ void MainWindow::setupUi()
         ACTION("Find chessboards", openChessboardFinder());
 
         ACTION("Correct depth", openDepthCorrector());
+
+		ACTION("Track Skeleton Info", skeletonTraking());
 
         ACTION("Record", openRecorder());
     }
