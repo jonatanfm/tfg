@@ -15,8 +15,8 @@ RecordedStream::RecordedStream(const std::string& color, const std::string& dept
         colorVideo.open(colorFile);
         if (!colorVideo.isOpened()) colorFile.clear();
         else {
-            recordedColorFrame.create(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3);
-            colorBuffer = newColorFrame();
+            recordedColorFrame.create(cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT), CV_8UC3);
+            colorBuffer.reset(new ColorFrame());
             if (name.empty()) name = colorFile;
         }
     }
@@ -25,8 +25,8 @@ RecordedStream::RecordedStream(const std::string& color, const std::string& dept
         depthVideo.open(depthFile);
         if (!depthVideo.isOpened()) depthFile.clear();
         else {
-            recordedDepthFrame.create(cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT), CV_8UC3);
-            depthBuffer = newDepthFrame();
+            recordedDepthFrame.create(cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT), CV_8UC3);
+            depthBuffer.reset(new DepthFrame());
             if (name.empty()) name = depthFile;
         }
     }
@@ -54,15 +54,6 @@ RecordedStream::~RecordedStream()
     colorVideo.release();
     depthVideo.release();
     skeletonReader.close();
-
-    if (colorBuffer != nullptr) {
-        delete[] colorBuffer;
-        colorBuffer = nullptr;
-    }
-    if (depthBuffer != nullptr) {
-        delete[] depthBuffer;
-        depthBuffer = nullptr;
-    }
 }
 
 static const int FPS = 30;
@@ -72,9 +63,9 @@ void RecordedStream::stream()
 {
     qDebug("[RecordedStream] Thread started");
 
-    ColorPixel* color;
-    DepthPixel* depth;
-    NUI_SKELETON_FRAME* skeleton;
+    ColorFrame* color;
+    DepthFrame* depth;
+    SkeletonFrame* skeleton;
     while (true) {
         if (stopping) break;
 
@@ -100,15 +91,15 @@ void RecordedStream::stream()
         depth = nullptr;
         if (depthVideo.isOpened() && depthVideo.grab()) {
             depthVideo.retrieve(recordedDepthFrame);
-            Utils::rgbToDepthFrame(recordedDepthFrame, depthBuffer);
-            depth = depthBuffer;
+            Utils::rgbToDepthFrame(recordedDepthFrame, *depthBuffer);
+            depth = depthBuffer.get();
         }
 
         color = nullptr;
         if (colorVideo.isOpened() && colorVideo.grab()) {
             colorVideo.retrieve(recordedColorFrame);
-            Utils::rgbToColorFrame(recordedDepthFrame, colorBuffer);
-            color = colorBuffer;
+            Utils::rgbToColorFrame(recordedDepthFrame, *colorBuffer);
+            color = colorBuffer.get();
         }
 
         skeleton = nullptr;

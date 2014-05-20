@@ -7,13 +7,6 @@
 #pragma warning(disable : 4100)
 
 
-#define COLOR_FRAME_WIDTH  640
-#define COLOR_FRAME_HEIGHT 480
-
-#define DEPTH_FRAME_WIDTH  640
-#define DEPTH_FRAME_HEIGHT 480
-
-
 //
 // C/C++
 //
@@ -43,7 +36,6 @@
 
 #undef min
 #undef max
-
 
 //
 // Kinect
@@ -98,8 +90,6 @@
     #pragma comment(lib, "opencv_highgui249")
 #endif
 
-using cv::Ptr;
-
 
 //
 // QT
@@ -129,6 +119,10 @@ using cv::Ptr;
 //
 // Misc
 //
+
+using cv::Ptr;
+
+using std::unique_ptr;
 
 #ifndef OUT
     #define OUT

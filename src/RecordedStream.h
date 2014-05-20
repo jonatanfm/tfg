@@ -70,10 +70,10 @@ class RecordedStream : public AsyncStream
 
         cv::Mat recordedColorFrame;
         cv::Mat recordedDepthFrame;
-        NUI_SKELETON_FRAME recordedSkeletonFrame;
+        SkeletonFrame recordedSkeletonFrame;
 
-        ColorPixel* colorBuffer;
-        DepthPixel* depthBuffer;
+        std::unique_ptr<ColorFrame> colorBuffer;
+        std::unique_ptr<DepthFrame> depthBuffer;
         
         volatile bool resetting;
         volatile bool paused;

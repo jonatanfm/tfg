@@ -96,7 +96,7 @@ bool WidgetOpenGL::hasOverlay(const std::string& name)
     auto it = overlays.begin();
     while (it != overlays.end()) {
         if (it->first == name) return true;
-		++it;
+        ++it;
     }
     return false;
 }
@@ -106,10 +106,10 @@ void WidgetOpenGL::addOverlay(const std::string& name, Overlay overlay)
     auto it = overlays.begin();
     while (it != overlays.end()) {
         if (it->first == name) return;
-		++it;
+        ++it;
     }
     overlays.push_back(std::make_pair(name, overlay));
-	updateGL();
+    updateGL();
 }
 
 void WidgetOpenGL::removeOverlay(const std::string& name)
@@ -119,7 +119,7 @@ void WidgetOpenGL::removeOverlay(const std::string& name)
         if (it->first == name) it = overlays.erase(it);
         else ++it;
     }
-	updateGL();
+    updateGL();
 }
 
 void WidgetOpenGL::removeAllOverlays()

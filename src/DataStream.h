@@ -7,6 +7,11 @@
 
 #include "Calibration.h"
 
+#include "Data.h"
+
+
+
+
 // Base class for the different data streams
 // As a plus, implements OpenCV compatibility with "VideoCapture" class
 class DataStream : public cv::VideoCapture
@@ -15,69 +20,7 @@ class DataStream : public cv::VideoCapture
 
     public:
 
-        // Represents a frame number. Used to check if two frames are the same
-        struct FrameNum
-        {
-            friend class FixedFrameStream;
-
-            private:
-                int num;
-
-            public:
-                FrameNum() : num(0) { }
-
-                FrameNum(const FrameNum& other) : num(other.num) { }
-
-                inline bool operator==(const FrameNum& other) const
-                {
-                    return num == other.num;
-                }
-
-                inline bool operator!=(const FrameNum& other) const
-                {
-                    return num != other.num;
-                }
-
-                inline void operator++()
-                {
-                    ++num;
-                }
-
-                inline int getNumber() const
-                {
-                    return num;
-                }
-        };
-
-
-        // A color frame pixel
-        union ColorPixel
-        {
-            unsigned int color;
-            unsigned char data[4];
-            struct
-            {
-                unsigned char r;
-                unsigned char g;
-                unsigned char b;
-                unsigned char a;
-            };
-        };
-
-        // A depth frame pixel
-        struct DepthPixel
-        {
-            unsigned short playerIndex;
-            unsigned short depth;
-        };
-
-        typedef std::function< void (const ColorPixel* color, const DepthPixel* depth, const NUI_SKELETON_FRAME* skeleton) > Callback;
-
-        // Size in bytes of a Color frame
-        static const unsigned int COLOR_FRAME_SIZE = (COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT) * sizeof(ColorPixel);
-
-        // Size in bytes of a Depth frame
-        static const unsigned int DEPTH_FRAME_SIZE = (DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT) * sizeof(DepthPixel);
+        typedef std::function< void (const ColorFrame* color, const DepthFrame* depth, const SkeletonFrame* skeleton) > Callback;
 
 
         DataStream() :
@@ -139,11 +82,11 @@ class DataStream : public cv::VideoCapture
         // Puts the calling thread to sleep until a new frame is available
         // Once available, it is awakened and the non-null pointers passed
         // as arguments are filled with the new frame data.
-        virtual bool waitForFrame(ColorPixel* colorFrame, DepthPixel* depthFrame,
-            NUI_SKELETON_FRAME* skeletonFrame, FrameNum* frameNum = nullptr) = 0;
+        virtual bool waitForFrame(ColorFrame* colorFrame, DepthFrame* depthFrame,
+            SkeletonFrame* skeletonFrame, FrameNum* frameNum = nullptr) = 0;
 
         // Get the most recent color frame
-        virtual bool getColorFrame(ColorPixel* data, FrameNum* num = nullptr)
+        virtual bool getColorFrame(ColorFrame& frame, FrameNum* num = nullptr)
         {
             return false;
         }
@@ -155,7 +98,7 @@ class DataStream : public cv::VideoCapture
         }
 
         // Get the most recent depth frame. Returns true if success.
-        virtual bool getDepthFrame(DepthPixel* data, FrameNum* num = nullptr)
+        virtual bool getDepthFrame(DepthFrame& frame, FrameNum* num = nullptr)
         {
             return false;
         }
@@ -166,7 +109,7 @@ class DataStream : public cv::VideoCapture
         //}
 
         // Get the most recent skeleton frame. Returns true if success.
-        virtual bool getSkeletonFrame(NUI_SKELETON_FRAME& frame, FrameNum* num = nullptr)
+        virtual bool getSkeletonFrame(SkeletonFrame& frame, FrameNum* num = nullptr)
         {
             return false;
         }
@@ -199,17 +142,6 @@ class DataStream : public cv::VideoCapture
         static void deleting(DataStream* stream); // Implemented in MainWindow.cpp, do not call manually
 
 
-        static inline ColorPixel* newColorFrame()
-        {
-            return new ColorPixel[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
-        }
-
-        static inline DepthPixel* newDepthFrame()
-        {
-            return new DepthPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
-        }
-
-
 
         virtual bool grab() override
         {
@@ -218,8 +150,8 @@ class DataStream : public cv::VideoCapture
 
         virtual bool retrieve(CV_OUT cv::Mat& image, int channel = 0) override
         {
-            if (image.type() != CV_8UC3 || image.size().width != COLOR_FRAME_WIDTH || image.size().height != COLOR_FRAME_HEIGHT) {
-                image.create(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3);
+            if (image.type() != CV_8UC3 || image.size().width != ColorFrame::WIDTH || image.size().height != ColorFrame::HEIGHT) {
+                image.create(cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT), CV_8UC3);
             }
             getColorImage(image);
             return true;
@@ -275,7 +207,7 @@ class DataStream : public cv::VideoCapture
         IntrinsicParams colorIntrinsics;
         IntrinsicParams depthIntrinsics;
 
-        inline void callNewFrameCallbacks(const ColorPixel* color, const DepthPixel* depth, const NUI_SKELETON_FRAME* skeleton)
+        inline void callNewFrameCallbacks(const ColorFrame* color, const DepthFrame* depth, const SkeletonFrame* skeleton)
         {
             for (auto it = newFrameCallbacks.begin(); it != newFrameCallbacks.end(); ++it) {
                 it->second(color, depth, skeleton);

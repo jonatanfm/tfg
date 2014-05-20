@@ -15,7 +15,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 {
     private:
         QMutex skeletonMutex;
-        NUI_SKELETON_FRAME skeleton;
+        SkeletonFrame skeleton;
 
         std::vector< Ptr<DataStream> > streams;
 
@@ -59,11 +59,15 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
             if (streamList.size() > 0) {
                 auto baseStream = streamList[0];
                 streams.push_back(baseStream);
-                baseStream->addNewFrameCallback(this, [this](const DataStream::ColorPixel*, const DataStream::DepthPixel*, const NUI_SKELETON_FRAME* skeleton) -> void {
-                    skeletonMutex.lock();
-                    memcpy(&this->skeleton, skeleton, sizeof(NUI_SKELETON_FRAME));
-                    skeletonMutex.unlock();
-                });
+
+                if (baseStream->hasSkeleton()) {
+                    baseStream->addNewFrameCallback(this, [this](const ColorFrame*, const DepthFrame*, const SkeletonFrame* skeleton) -> void {
+                        if (skeleton == nullptr) return;
+                        skeletonMutex.lock();
+                        this->skeleton = *skeleton;
+                        skeletonMutex.unlock();
+                    });
+                }
 
                 auto& calib = mainWindow.getCalibration().getCalibratedWith(0);
                 for (int i = 0; i < int(calib.size()); ++i) {
@@ -99,7 +103,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
             glEnable(GL_LIGHT0);
 
-            //texture = RenderUtils::createTexture(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT);
+            //texture = RenderUtils::createTexture(DepthFrame::WIDTH, DepthFrame::HEIGHT);
         }
 
         bool render()
@@ -152,9 +156,9 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
             #endif
 
             skeletonMutex.lock();
-            if (skeleton.dwFrameNumber != 0) {
+            if (skeleton.isValid()) {
                 glPushMatrix();
-                RenderUtils::drawSkeletons3D(skeleton);
+                RenderUtils::drawSkeletons3D(skeleton.frame);
                 glPopMatrix();
             }
             skeletonMutex.unlock();

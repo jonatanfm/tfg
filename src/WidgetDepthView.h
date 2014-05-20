@@ -14,10 +14,11 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
     private:
         Ptr<DataStream> stream;
         Texture texture;
-        DataStream::ColorPixel* buffer;
 
-        DataStream::FrameNum frameNum;
-        DataStream::DepthPixel* frame;
+        FrameNum frameNum;
+        DepthFrame frame;
+
+        unsigned char textureBuffer[DepthFrame::SIZE * 4];
 
     public:
         WidgetDepthView(MainWindow& mainWindow, Ptr<DataStream> stream) :
@@ -25,11 +26,9 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
             stream(stream)
         {
             makeCurrent();
-            texture = RenderUtils::createTexture(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT);
-            buffer = new DataStream::ColorPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
-            frame = DataStream::newDepthFrame();
+            texture = RenderUtils::createTexture(DepthFrame::WIDTH, DepthFrame::HEIGHT);
 
-            stream->addNewFrameCallback(this, [this](const DataStream::ColorPixel*, const DataStream::DepthPixel*, const NUI_SKELETON_FRAME*) -> void {
+            stream->addNewFrameCallback(this, [this](const ColorFrame*, const DepthFrame*, const SkeletonFrame*) -> void {
                 emit this->triggerRefresh();
             });
         }
@@ -37,8 +36,6 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
         ~WidgetDepthView()
         {
             if (stream) stream->removeNewFrameCallback(this);
-            delete[] frame;
-            delete[] buffer;
         }
 
         Ptr<DataStream> getStream() const override
@@ -48,10 +45,10 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
 
         void frameToImage()
         {
-            const DataStream::DepthPixel* src = frame;
-            const DataStream::DepthPixel* end = src + (DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT);
+            const DepthPixel* src = frame.pixels;
+            const DepthPixel* end = src + (DepthFrame::WIDTH * DepthFrame::HEIGHT);
 
-            unsigned char* dest = reinterpret_cast<unsigned char*>(buffer);
+            unsigned char* dest = textureBuffer;
 
             while (src < end) {
                 USHORT depth = src->depth;
@@ -85,19 +82,20 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
 
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
-            glOrtho(0, COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT, 0, -1, 1);
+            glOrtho(0, DepthFrame::WIDTH, DepthFrame::HEIGHT, 0, -1, 1);
 
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
 
 
             glBindTexture(GL_TEXTURE_2D, texture);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)buffer);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, DepthFrame::WIDTH, DepthFrame::HEIGHT,
+                GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)textureBuffer);
 
             RenderUtils::setColor(1.0f, 1.0f, 1.0f, 1.0f);
 
             RenderUtils::setTexture(texture);
-            RenderUtils::drawRect(0.0f, 0.0f, COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
+            RenderUtils::drawRect(0.0f, 0.0f, DepthFrame::WIDTH, DepthFrame::HEIGHT);
             RenderUtils::setTexture(0);
 
             return true;

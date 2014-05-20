@@ -82,14 +82,9 @@
         public:
             ColorRecorder(Ptr<DataStream> stream) :
                 Recorder(stream),
-                buffer(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3)
+                buffer(cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT), CV_8UC3)
             {
-                frame = DataStream::newColorFrame();
-            }
 
-            ~ColorRecorder()
-            {
-                delete[] frame;
             }
 
             bool setupWriter(const QString& file, int fourcc) override
@@ -106,7 +101,7 @@
                     (file + ".avi").toStdString(),
                     fourcc,
                     30.0,
-                    cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT),
+                    cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT),
                     true
                 );
 
@@ -116,7 +111,7 @@
             void run() override
             {
                 while (recording) {
-                    if (stream->waitForFrame(frame, nullptr, nullptr)) {
+                    if (stream->waitForFrame(&frame, nullptr, nullptr)) {
                         Utils::colorFrameToRgb(frame, buffer);
                         writer << buffer;
                     }
@@ -128,7 +123,7 @@
             cv::VideoWriter writer;
             cv::Mat buffer;
 
-            DataStream::ColorPixel* frame;
+            ColorFrame frame;
 
 
     };
@@ -143,14 +138,9 @@
         public:
             DepthRecorder(Ptr<DataStream> stream) :
                 Recorder(stream),
-                buffer(cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT), CV_8UC3)
+                buffer(cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT), CV_8UC3)
             {
-                frame = DataStream::newDepthFrame();
-            }
 
-            ~DepthRecorder()
-            {
-                delete[] frame;
             }
 
             bool setupWriter(const QString& file, int fourcc) override
@@ -159,7 +149,7 @@
                     (file + ".avi").toStdString(),
                     fourcc,
                     30.0,
-                    cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT),
+                    cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT),
                     true
                 );
 
@@ -169,7 +159,7 @@
             void run() override
             {
                 while (recording) {
-                    if (stream->waitForFrame(nullptr, frame, nullptr)) {
+                    if (stream->waitForFrame(nullptr, &frame, nullptr)) {
                         Utils::depthFrameToRgb(frame, buffer);
                         writer << buffer;
                     }
@@ -181,7 +171,7 @@
             cv::VideoWriter writer;
             cv::Mat buffer;
 
-            DataStream::DepthPixel* frame;
+            DepthFrame frame;
 
     };
 
@@ -203,7 +193,7 @@
                 QString f = filename;
                 //int i = f.lastIndexOf('.');
                 //if (i != -1) f = f.mid(0, i);
-                f += ".bin";
+                f += ".skel";
 
                 return writer.openFileForWriting(f.toUtf8().data());
             }
@@ -221,7 +211,7 @@
             }
 
         private:
-            NUI_SKELETON_FRAME frame;
+            SkeletonFrame frame;
 
             SkeletonIO writer;
 
@@ -371,35 +361,35 @@ void WidgetRecorder::captureFrame()
 
 void WidgetRecorder::captureColorFrame(Ptr<DataStream> stream, QString filename)
 {
-    DataStream::ColorPixel* frame = DataStream::newColorFrame();
-    stream->getColorFrame(frame);
+    ColorFrame* frame = new ColorFrame();
+    stream->getColorFrame(*frame);
 
-    cv::Mat img(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3);
-    Utils::colorFrameToRgb(frame, img);
+    cv::Mat img(cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT), CV_8UC3);
+    Utils::colorFrameToRgb(*frame, img);
     cv::imwrite((filename + ".png").toStdString(), img);
 
-    delete[] frame;
+    delete frame;
 }
 
 void WidgetRecorder::captureDepthFrame(Ptr<DataStream> stream, QString filename)
 {
-    DataStream::DepthPixel* frame = DataStream::newDepthFrame();
-    stream->getDepthFrame(frame);
+    DepthFrame* frame = new DepthFrame();
+    stream->getDepthFrame(*frame);
 
-    cv::Mat img(cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT), CV_8UC3);
-    Utils::depthFrameToRgb(frame, img);
+    cv::Mat img(cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT), CV_8UC3);
+    Utils::depthFrameToRgb(*frame, img);
     cv::imwrite((filename + ".png").toStdString(), img);
 
-    delete[] frame;
+    delete frame;
 }
 
 void WidgetRecorder::captureSkeletonFrame(Ptr<DataStream> stream, QString filename)
 {
-    NUI_SKELETON_FRAME frame;
+    SkeletonFrame frame;
     stream->getSkeletonFrame(frame);
 
     SkeletonIO writer;
-    if (!writer.openFileForWriting(filename.toStdString().c_str())) return;
+    if (!writer.openFileForWriting((filename + ".skel").toStdString().c_str())) return;
     writer.writeFrame(frame);
     writer.close();
 }

@@ -138,8 +138,8 @@ void KinectStream::updateColorBuffer()
     if (lockedRect.Pitch != 0) {
         const BYTE* src = reinterpret_cast<const BYTE*>(lockedRect.pBits);
 
-        memcpy(colorBuffer, src, COLOR_FRAME_SIZE);
-        convertBGRA2RGBA((unsigned char*) colorBuffer, COLOR_FRAME_SIZE);
+        memcpy(colorBuffer.pixels, src, ColorFrame::BYTES);
+        convertBGRA2RGBA((unsigned char*) colorBuffer.pixels, ColorFrame::BYTES);
     }
     frameTex->UnlockRect(0);
 
@@ -161,7 +161,7 @@ void KinectStream::updateDepthBuffer()
         if (lockedRect.Pitch != 0) {
             const NUI_DEPTH_IMAGE_PIXEL* frame = reinterpret_cast<const NUI_DEPTH_IMAGE_PIXEL*>(lockedRect.pBits);
 
-            memcpy(depthBuffer, frame, DEPTH_FRAME_SIZE);
+            memcpy(depthBuffer.pixels, frame, DepthFrame::BYTES);
         }
         frameTex->UnlockRect(0);
         frameTex->Release();
@@ -178,7 +178,7 @@ void KinectStream::updateSkeleton()
 
     sensor->NuiTransformSmooth(&frame, nullptr);
 
-    skeletonBuffer = frame;
+    skeletonBuffer.frame = frame;
 }
 
 void KinectStream::stream()
@@ -194,7 +194,7 @@ void KinectStream::stream()
         updateDepthBuffer();
         updateSkeleton();
         
-        pushFrame(colorBuffer, depthBuffer, &skeletonBuffer);
+        pushFrame(&colorBuffer, &depthBuffer, &skeletonBuffer);
     }
 
     if (hr == WAIT_FAILED) {

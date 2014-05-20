@@ -28,18 +28,6 @@ void DataStream::deleting(DataStream* obj)
 
 
 
-template<class T>
-inline T* findSubwindowByType(QMdiArea* area)
-{
-    QList<QMdiSubWindow*> lst = area->subWindowList();
-    for (auto it = lst.begin(); it != lst.end(); ++it) {
-        T* ptr = dynamic_cast<T*>((*it)->widget());
-        if (ptr != nullptr) return ptr;
-    }
-    return nullptr;
-}
-
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     drawSkeletons(true)
@@ -58,7 +46,13 @@ MainWindow::~MainWindow()
     // Increment references to the streams, as they will be decreased
     // when they are released, but they are meant to be weak references
     for (int i = 0; i < int(streams.size()); ++i) {
-        if (streams[i] != nullptr) streams[i].addref();
+        if (streams[i] != nullptr)
+        {
+            #ifdef HAS_BULLET
+                streams[i]->removeNewFrameCallback(&world);
+            #endif
+            streams[i].addref();
+        }
     }
 
     if (instance == this) instance = nullptr;
@@ -88,6 +82,9 @@ void MainWindow::initialize()
                     }
                 }
                 else if (str == "sceneview") openSceneView();
+                #ifdef HAS_BULLET
+                    else if (str == "augmentedview") openAugmentedView();
+                #endif
             }
         }
     }
@@ -148,18 +145,18 @@ void MainWindow::toggleSkeletonsOverlay(WidgetOpenGL* widget)
     else {
         if (widget->is<WidgetColorView>()) {
             widget->addOverlay("skeleton", [](WidgetOpenGL* w) -> bool {
-                NUI_SKELETON_FRAME skeleton;
+                SkeletonFrame skeleton;
                 if (((WidgetColorView*)w)->getStream()->getSkeletonFrame(skeleton)) {
-                    RenderUtils::drawSkeletons(skeleton, true);
+                    RenderUtils::drawSkeletons(skeleton.frame, true);
                 }
                 return true;
             });
         }
         else if (widget->is<WidgetDepthView>()) {
             widget->addOverlay("skeleton", [](WidgetOpenGL* w) -> bool {
-                NUI_SKELETON_FRAME skeleton;
+                SkeletonFrame skeleton;
                 if (((WidgetDepthView*)w)->getStream()->getSkeletonFrame(skeleton)) {
-                    RenderUtils::drawSkeletons(skeleton, false);
+                    RenderUtils::drawSkeletons(skeleton.frame, false);
                 }
                 return true;
             });
@@ -245,7 +242,7 @@ int MainWindow::addStream(const Ptr<DataStream>& stream)
 
     #ifdef HAS_BULLET
         if (stream->hasSkeleton()) {
-            stream.obj->addNewFrameCallback(&world, [this] (const DataStream::ColorPixel* color, const DataStream::DepthPixel* depth, const NUI_SKELETON_FRAME* skeleton) -> void {
+            stream.obj->addNewFrameCallback(&world, [this](const ColorFrame* color, const DepthFrame* depth, const SkeletonFrame* skeleton) -> void {
                 this->getWorld().setSkeleton(skeleton);
             });
         }
@@ -292,14 +289,12 @@ void MainWindow::openKinect(int i)
 
 void MainWindow::openRecorder()
 {
-    WidgetRecorder* w = findSubwindowByType<WidgetRecorder>(mdiArea);
-    if (w == nullptr) addSubWindow(new WidgetRecorder(*this), "Recorder");
+    reopenSingletonSubwindow<WidgetRecorder>("Recorder");
 }
 
 void MainWindow::openSceneView()
 {
-    WidgetSceneView* w = findSubwindowByType<WidgetSceneView>(mdiArea);
-    if (w == nullptr) addSubWindow(new WidgetSceneView(*this), "Scene View");
+    reopenSingletonSubwindow<WidgetSceneView>("Scene View");
 }
 
 void MainWindow::openChessboardFinder()
@@ -332,7 +327,7 @@ void MainWindow::openDepthCorrector()
 
 void MainWindow::openStreamManager()
 {
-    WidgetStreamManager* w = findSubwindowByType<WidgetStreamManager>(mdiArea);
+    WidgetStreamManager* w = findSubwindowByType<WidgetStreamManager>();
     if (w != nullptr) {
         w->refresh();
         ((QWidget*) w->parent())->setFocus();
@@ -346,7 +341,7 @@ void MainWindow::openStreamManager()
 
 void MainWindow::updateStreamManager()
 {
-    WidgetStreamManager* w = findSubwindowByType<WidgetStreamManager>(mdiArea);
+    WidgetStreamManager* w = findSubwindowByType<WidgetStreamManager>();
     if (w != nullptr) w->refresh();
 }
 
@@ -367,7 +362,7 @@ void MainWindow::openImageStream()
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFiles);
     QStringList filters;
-    filters << "Image files (*.png *.bmp *.xpm *.jpg)" << "Any files (*)";
+    filters << "Image files (*.png *.bmp *.xpm *.jpg *.skel *.bin)" << "Any files (*)";
     dialog.setNameFilters(filters);
     if (dialog.exec()) {
         QString color, depth, skeleton;
@@ -382,7 +377,7 @@ void MainWindow::openRecordedStream()
     QFileDialog dialog(this);
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFiles);
-    dialog.setNameFilter("Stream Videos (*.avi *.wmv *.mp4 *.bin)");
+    dialog.setNameFilter("Stream Videos (*.avi *.wmv *.mp4 *.skel *.bin)");
     if (dialog.exec()) {
         QString color, depth, skeleton;
         if (determineStreamFiles(dialog.selectedFiles(), OUT color, OUT depth, OUT skeleton)) {
@@ -454,6 +449,25 @@ void MainWindow::startOperation(Operation* op, std::function< void() > callback)
 }
 
 
+
+#ifdef HAS_BULLET
+
+    #include "otger/WidgetAugmentedView.h"
+
+    void MainWindow::openAugmentedView()
+    {
+        reopenSingletonSubwindow<WidgetAugmentedView>("Augmented View");
+    }
+
+#else
+
+    void MainWindow::openAugmentedView() { }
+
+#endif
+
+
+
+
 #pragma region Setup UI
 
 #define MENU(_text) \
@@ -493,6 +507,10 @@ void MainWindow::setupUi()
     MENU("View");
     {
         ACTION("Scene View", openSceneView());
+
+        #ifdef HAS_BULLET
+            ACTION("Augmented View", openAugmentedView());
+        #endif
 
         menu->addSeparator();
 

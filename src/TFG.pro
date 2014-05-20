@@ -41,6 +41,7 @@ HEADERS += \
     globals.h \
     Utils.h \
     RenderUtils.h \
+    Data.h \
     DataStream.h \
     AsyncStream.h \
     KinectManager.h \
@@ -87,9 +88,8 @@ exists(../config.pro) {
     INCLUDEPATH += $$(BULLET_DIR)/src
     LIBS += -L$$(BULLET_DIR)/lib
     
-    QMAKE_CXXFLAGS += -DHAS_BULLET
+    DEFINES += HAS_BULLET
 }
-
 
 MOC_DIR = $$OBJECTS_DIR
 RCC_DIR = $$OBJECTS_DIR

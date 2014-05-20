@@ -5,35 +5,35 @@
 #include "SkeletonIO.h"
 
 FixedFrameStream::FixedFrameStream(const std::string& colorFile, const std::string& depthFile, const std::string& skeletonFile) :
-    colorFrame(nullptr),
-    depthFrame(nullptr),
+    colorFrame(),
+    depthFrame(),
     skeletonFrame()
 {
 
     if (!colorFile.empty()) {
         cv::Mat img = cv::imread(colorFile);
-        colorFrame = newColorFrame();
-        Utils::rgbToColorFrame(img, colorFrame);
+        colorFrame.reset(new ColorFrame());
+        Utils::rgbToColorFrame(img, *colorFrame);
 
         if (name.empty()) name = colorFile;
     }
 
     if (!depthFile.empty()) {
         cv::Mat img = cv::imread(depthFile);
-        depthFrame = newDepthFrame();
-        Utils::rgbToDepthFrame(img, depthFrame);
+        depthFrame.reset(new DepthFrame());
+        Utils::rgbToDepthFrame(img, *depthFrame);
 
         if (name.empty()) name = depthFile;
     }
 
     if (!skeletonFile.empty()) {
-        // TODO
-        SkeletonIO reader; 
-		
-		if (reader.openFileForReading(skeletonFile.c_str())) { 
-			reader.readFrame(skeletonFrame); 
-			if (name.empty()) name = skeletonFile; 
-		}
+        SkeletonIO reader;
+        SkeletonFrame* skf = new SkeletonFrame();
+        if (reader.openFileForReading(skeletonFile.c_str()) && reader.readFrame(*skf)) {
+            skeletonFrame.reset(skf);
+            if (name.empty()) name = skeletonFile;
+        }
+        else delete skf;
     }
 
     if (name.empty()) name = "Unnamed";
@@ -43,18 +43,12 @@ FixedFrameStream::FixedFrameStream(const std::string& colorFile, const std::stri
     }
 }
 
-FixedFrameStream::~FixedFrameStream()
-{
-    if (colorFrame != nullptr) delete[] colorFrame;
-    if (depthFrame != nullptr) delete[] depthFrame;
-}
 
-
-bool FixedFrameStream::waitForFrame(ColorPixel* colorFrame, DepthPixel* depthFrame, NUI_SKELETON_FRAME* skeletonFrame, FrameNum* frameNum)
+bool FixedFrameStream::waitForFrame(ColorFrame* colorFrame, DepthFrame* depthFrame, SkeletonFrame* skeletonFrame, FrameNum* frameNum)
 {
-    if (colorFrame != nullptr) memcpy(colorFrame, this->colorFrame, COLOR_FRAME_SIZE);
-    if (depthFrame != nullptr) memcpy(depthFrame, this->depthFrame, DEPTH_FRAME_SIZE);
-    if (skeletonFrame != nullptr) memcpy(skeletonFrame, &(this->skeletonFrame), sizeof(NUI_SKELETON_FRAME));
+    if (colorFrame != nullptr) *colorFrame = *this->colorFrame;
+    if (depthFrame != nullptr) *depthFrame = *this->depthFrame;
+    if (skeletonFrame != nullptr) *skeletonFrame = *this->skeletonFrame;
 
     if (frameNum == nullptr) return true;
     int v = frameNum->num;
@@ -62,10 +56,10 @@ bool FixedFrameStream::waitForFrame(ColorPixel* colorFrame, DepthPixel* depthFra
     return v != 1;
 }
 
-bool FixedFrameStream::getColorFrame(ColorPixel* data, FrameNum* frameNum)
+bool FixedFrameStream::getColorFrame(ColorFrame& frame, FrameNum* frameNum)
 {
     if (colorFrame == nullptr) return false;
-    memcpy(data, colorFrame, COLOR_FRAME_SIZE);
+    frame = *colorFrame;
 
     if (frameNum == nullptr) return true;
     int v = frameNum->num;
@@ -76,7 +70,7 @@ bool FixedFrameStream::getColorFrame(ColorPixel* data, FrameNum* frameNum)
 bool FixedFrameStream::getColorImage(cv::Mat& mat, FrameNum* frameNum)
 {
     if (colorFrame == nullptr) return false;
-    Utils::colorFrameToRgb((ColorPixel*)colorFrame, mat);
+    Utils::colorFrameToRgb(*colorFrame, mat);
 
     if (frameNum == nullptr) return true;
     int v = frameNum->num;
@@ -86,15 +80,15 @@ bool FixedFrameStream::getColorImage(cv::Mat& mat, FrameNum* frameNum)
 
 void FixedFrameStream::setColorImage(cv::Mat& mat)
 {
-    if (colorFrame == nullptr) colorFrame = newColorFrame();
-    Utils::rgbToColorFrame(mat, colorFrame);
+    if (colorFrame == nullptr) colorFrame.reset(new ColorFrame());
+    Utils::rgbToColorFrame(mat, *colorFrame);
 }
 
 
-bool FixedFrameStream::getDepthFrame(DepthPixel* data, FrameNum* frameNum)
+bool FixedFrameStream::getDepthFrame(DepthFrame& frame, FrameNum* frameNum)
 {
     if (depthFrame == nullptr) return false;
-    memcpy(data, depthFrame, DEPTH_FRAME_SIZE);
+    frame = *depthFrame;
 
     if (frameNum == nullptr) return true;
     int v = frameNum->num;
@@ -102,13 +96,11 @@ bool FixedFrameStream::getDepthFrame(DepthPixel* data, FrameNum* frameNum)
     return v != 1;
 }
 
-bool FixedFrameStream::getSkeletonFrame(NUI_SKELETON_FRAME& frame, FrameNum* frameNum)
+bool FixedFrameStream::getSkeletonFrame(SkeletonFrame& frame, FrameNum* frameNum)
 {
-    if (skeletonFrame.dwFrameNumber == 0) return false;
+    if (skeletonFrame == nullptr) return false;
 
-    int val = frame.dwFrameNumber;
-
-    memcpy(&frame, &skeletonFrame, sizeof(NUI_SKELETON_FRAME));
-
-    return val != frame.dwFrameNumber;
+    int val = frame.frame.dwFrameNumber;
+    frame = *skeletonFrame;
+    return val != frame.frame.dwFrameNumber;
 }

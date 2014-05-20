@@ -62,9 +62,9 @@ class KinectStream : public AsyncStream
 
         INuiCoordinateMapper* mapper;
 
-        ColorPixel colorBuffer[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
-        DepthPixel depthBuffer[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
-        NUI_SKELETON_FRAME skeletonBuffer;
+        ColorFrame colorBuffer;
+        DepthFrame depthBuffer;
+        SkeletonFrame skeletonBuffer;
 
         KinectStream(const KinectStream&);
         KinectStream& operator=(const KinectStream&);

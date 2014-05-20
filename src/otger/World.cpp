@@ -328,10 +328,6 @@ World::World() :
     running(false),
     skeletonCurrentA(false)
 {
-    skeletonA.dwFrameNumber = 0;
-    skeletonB.dwFrameNumber = 0;
-    newSkeleton.dwFrameNumber = 0;
-
     broadphase = new btDbvtBroadphase();
     
     collisionConfiguration = new btDefaultCollisionConfiguration();
@@ -383,14 +379,14 @@ void World::updateSkeleton()
 {
     skeletonCurrentA = !skeletonCurrentA;
 
-    NUI_SKELETON_FRAME* current = skeletonCurrentA ? &skeletonA : &skeletonB;
-    //NUI_SKELETON_FRAME* last = skeletonCurrentA ? &skeletonB : &skeletonA;
+    SkeletonFrame* current = skeletonCurrentA ? &skeletonA : &skeletonB;
+    //SkeletonFrame* last = skeletonCurrentA ? &skeletonB : &skeletonA;
 
     skeletonMutex.lock();
-    memcpy(current, &newSkeleton, sizeof(NUI_SKELETON_FRAME));
+    *current = newSkeleton;
     skeletonMutex.unlock();
 
-    skeleton->update(*current);
+    skeleton->update(current->frame);
     /*if (current->dwFrameNumber == 0) {
         if (last->dwFrameNumber != 0) {}
 
@@ -440,9 +436,9 @@ void World::render()
 }
 
 
-void World::setSkeleton(const NUI_SKELETON_FRAME* skeleton)
+void World::setSkeleton(const SkeletonFrame* skeleton)
 {
     skeletonMutex.lock();
-    memcpy(&newSkeleton, skeleton, sizeof(NUI_SKELETON_FRAME));
+    newSkeleton = *skeleton;
     skeletonMutex.unlock();
 }

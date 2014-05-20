@@ -5,6 +5,8 @@
 
 #include "../globals.h"
 
+#include "../Data.h"
+
 class btBroadphaseInterface;
 class btDefaultCollisionConfiguration;
 class btCollisionDispatcher;
@@ -41,9 +43,9 @@ class World : private QThread
         QMutex skeletonMutex;
 
         bool skeletonCurrentA;
-        NUI_SKELETON_FRAME skeletonA, skeletonB;
+        SkeletonFrame skeletonA, skeletonB;
 
-        NUI_SKELETON_FRAME newSkeleton;
+        SkeletonFrame newSkeleton;
 
         btBroadphaseInterface* broadphase;
     
@@ -73,7 +75,7 @@ class World : private QThread
 
         void runIteration();
 
-        void setSkeleton(const NUI_SKELETON_FRAME* skeleton);
+        void setSkeleton(const SkeletonFrame* skeleton);
 
 };
 

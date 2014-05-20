@@ -11,7 +11,7 @@
 
     Utils::rgbToDepthFrame(original, frame);
 
-    cv::Mat mat(cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT), CV_8UC3);
+    cv::Mat mat(cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT), CV_8UC3);
 
     Utils::depthFrameToRgb(frame, mat);
 
@@ -21,7 +21,7 @@
         //CV_FOURCC('H', 'F', 'Y', 'U'),
         CV_FOURCC('D', 'I', 'B', ' '),
         30.0,
-        cv::Size(DEPTH_FRAME_WIDTH, DEPTH_FRAME_HEIGHT),
+        cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT),
         true
     );
 
@@ -42,7 +42,7 @@
 
     Utils::rgbToDepthFrame(mat2, frame2);
 
-    int cmp = memcmp(frame, frame2, DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT * sizeof(DataStream::DepthPixel));
+    int cmp = memcmp(frame, frame2, DepthFrame::WIDTH * DepthFrame::HEIGHT * sizeof(DataStream::DepthPixel));
 
     bool areEqual = (cmp == 0);
     return areEqual;

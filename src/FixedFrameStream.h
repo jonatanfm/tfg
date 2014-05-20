@@ -9,17 +9,16 @@ class FixedFrameStream : public DataStream
 {
     public:
         FixedFrameStream(const std::string& colorFile, const std::string& depthFile, const std::string& skeletonFile);
-        ~FixedFrameStream();
 
 
-        bool waitForFrame(ColorPixel* colorFrame, DepthPixel* depthFrame, NUI_SKELETON_FRAME* skeletonFrame, FrameNum* frameNum = nullptr) override;
+        bool waitForFrame(ColorFrame* colorFrame, DepthFrame* depthFrame, SkeletonFrame* skeletonFrame, FrameNum* frameNum = nullptr) override;
 
-        bool getColorFrame(ColorPixel* data, FrameNum* num = nullptr) override;
+        bool getColorFrame(ColorFrame& frame, FrameNum* num = nullptr) override;
         bool getColorImage(cv::Mat& mat, FrameNum* num = nullptr) override;
 
-        bool getDepthFrame(DepthPixel* data, FrameNum* num = nullptr) override;
+        bool getDepthFrame(DepthFrame& frame, FrameNum* num = nullptr) override;
 
-        bool getSkeletonFrame(NUI_SKELETON_FRAME& frame, FrameNum* num = nullptr) override;
+        bool getSkeletonFrame(SkeletonFrame& frame, FrameNum* num = nullptr) override;
 
 
         void setColorImage(cv::Mat& mat);
@@ -46,18 +45,16 @@ class FixedFrameStream : public DataStream
 
         bool hasSkeleton() const override
         {
-            return skeletonFrame.dwFrameNumber != 0;
+            return skeletonFrame != nullptr;
         }
 
     private:
 
         std::string name;
 
-        ColorPixel* colorFrame;
-
-        DepthPixel* depthFrame;
-
-        NUI_SKELETON_FRAME skeletonFrame;
+        std::unique_ptr<ColorFrame> colorFrame;
+        std::unique_ptr<DepthFrame> depthFrame;
+        std::unique_ptr<SkeletonFrame> skeletonFrame;
 };
 
 #endif

@@ -32,10 +32,10 @@ class Utils
             return s + "}\n";
         }
 
-        static void colorFrameToRgb(const DataStream::ColorPixel* frame, cv::Mat& image)
+        static void colorFrameToRgb(const ColorFrame& frame, cv::Mat& image)
         {
-            const DataStream::ColorPixel* src = frame;
-            const DataStream::ColorPixel* end = frame + COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT;
+            const ColorPixel* src = &frame.pixels[0];
+            const ColorPixel* end = &frame.pixels[0] + ColorFrame::WIDTH * ColorFrame::HEIGHT;
 
             unsigned char* dest = image.data;
             while (src < end) {
@@ -46,11 +46,11 @@ class Utils
             }
         }
 
-        static void rgbToColorFrame(const cv::Mat& image, DataStream::ColorPixel* frame)
+        static void rgbToColorFrame(const cv::Mat& image, ColorFrame& frame)
         {
             const unsigned char* src = image.data;
-            DataStream::ColorPixel* dest = frame;
-            DataStream::ColorPixel* end = frame + COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT;
+            ColorPixel* dest = &frame.pixels[0];
+            ColorPixel* end = &frame.pixels[0] + ColorFrame::WIDTH * ColorFrame::HEIGHT;
 
             while (dest < end) {
                 dest->b = *src++;
@@ -61,10 +61,10 @@ class Utils
         }
 
 
-        static void depthFrameToRgb(const DataStream::DepthPixel* frame, cv::Mat& image)
+        static void depthFrameToRgb(const DepthFrame& frame, cv::Mat& image)
         {
-            const DataStream::DepthPixel* src = frame;
-            const DataStream::DepthPixel* end = frame + DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT;
+            const DepthPixel* src = &frame.pixels[0];
+            const DepthPixel* end = &frame.pixels[0] + DepthFrame::WIDTH * DepthFrame::HEIGHT;
 
             unsigned char* dest = image.data;
             while (src < end) {
@@ -75,23 +75,23 @@ class Utils
             }
         }
 
-        static void rgbToDepthFrame(const cv::Mat& image, DataStream::DepthPixel* frame)
+        static void rgbToDepthFrame(const cv::Mat& image, DepthFrame& frame)
         {
-            DataStream::DepthPixel* dest = frame;
+            DepthPixel* dest = &frame.pixels[0];
             //if (image.isContinuous()) {
-                DataStream::DepthPixel* end = frame + DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT;
-                const unsigned char* src = image.data;
-                while (dest < end) {
-                    dest->depth = ((*src) << 8) | *(src + 1);
-                    dest->playerIndex = *(src + 2);
-                    src += 3;
-                    ++dest;
-                }
+            DepthPixel* end = &frame.pixels[0] + DepthFrame::WIDTH * DepthFrame::HEIGHT;
+            const unsigned char* src = image.data;
+            while (dest < end) {
+                dest->depth = ((*src) << 8) | *(src + 1);
+                dest->playerIndex = *(src + 2);
+                src += 3;
+                ++dest;
+            }
             /*}
             else {
-                for (int i = 0; i < DEPTH_FRAME_HEIGHT; ++i) {
+                for (int i = 0; i < DepthFrame::HEIGHT; ++i) {
                     const unsigned char* src = image.ptr(i);
-                    for (int j = 0; j < DEPTH_FRAME_WIDTH; ++j) {
+                    for (int j = 0; j < DepthFrame::WIDTH; ++j) {
                         dest->depth = ((*src) << 8) | *(src + 1);
                         dest->playerIndex = *(src + 2);
                         src += 3;

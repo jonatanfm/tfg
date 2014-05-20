@@ -74,7 +74,7 @@ void Calibrator::streamCalibration()
     statusChanged("Starting callibration...");
 
     // Size of the streams
-    cv::Size imageSize(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
+    cv::Size imageSize(ColorFrame::WIDTH, ColorFrame::HEIGHT);
 
     cv::Mat frame, gray;
 
@@ -159,7 +159,7 @@ void Calibrator::systemCalibration()
     generateChessboardPoints(OUT objectPoints, chessboardSquareSize);
 
     // Size of the streams
-    cv::Size imageSize(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
+    cv::Size imageSize(ColorFrame::WIDTH, ColorFrame::HEIGHT);
 
     // To store the found points, as well as the reference points, for each frame
     cv::vector< cv::vector<cv::Point3f> > chessboardPoints;

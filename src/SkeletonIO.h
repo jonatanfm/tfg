@@ -74,20 +74,20 @@ class SkeletonIO
             if (file == nullptr) return false;
 
             Header header;
-            if (fread(&header, sizeof(header), 1, file) != sizeof(Header)) return false;
+            if (fread(&header, sizeof(header), 1, file) != 1) return false;
 
             if (header.magicNumber != MAGIC_NUMBER || header.version != 1) return false;
             numFrames = header.numFrames;
             currentFrame = 0;
-            return false;
+            return true;
         }
 
-        bool readFrame(OUT NUI_SKELETON_FRAME& frame)
+        bool readFrame(OUT SkeletonFrame& frame)
         {
             assert(file != nullptr && !writing);
             if (currentFrame >= numFrames) return false;
             ++currentFrame;
-            return fread(&frame, sizeof(NUI_SKELETON_FRAME), 1, file) == sizeof(NUI_SKELETON_FRAME);
+            return fread(&frame, sizeof(SkeletonFrame), 1, file) == 1;
         }
 
         void reset()
@@ -111,10 +111,10 @@ class SkeletonIO
             return true;
         }
 
-        void writeFrame(const NUI_SKELETON_FRAME& frame)
+        void writeFrame(const SkeletonFrame& frame)
         {
             assert(file != nullptr && writing);
-            fwrite(&frame, sizeof(NUI_SKELETON_FRAME), 1, file);
+            fwrite(&frame, sizeof(SkeletonFrame), 1, file);
             ++numFrames;
         }
 

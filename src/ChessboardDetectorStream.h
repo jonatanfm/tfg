@@ -20,7 +20,7 @@ class ChessboardDetectorStream : public AsyncStream
             base(baseStream),
             chessboardSize(rows, cols)
         {
-            colorFrame = newColorFrame();
+            colorFrame = new ColorFrame();
 
             start();
         }
@@ -39,8 +39,8 @@ class ChessboardDetectorStream : public AsyncStream
 
         void stream() override
         {
-            DataStream::ColorPixel* buffer = newColorFrame();
-            cv::Mat image(cv::Size(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT), CV_8UC3);
+            ColorFrame* buffer = new ColorFrame();
+            cv::Mat image(cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT), CV_8UC3);
             cv::Mat gray;
             while (!stopping)
             {
@@ -75,10 +75,10 @@ class ChessboardDetectorStream : public AsyncStream
 
                 drawChessboardCorners(image, chessboardSize, corners, found);
 
-                Utils::rgbToColorFrame(image, buffer);
+                Utils::rgbToColorFrame(image, *buffer);
                 pushFrame(buffer, nullptr, nullptr);
             }
-            delete[] buffer;
+            delete buffer;
         }
 
 };

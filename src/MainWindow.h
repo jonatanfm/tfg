@@ -128,6 +128,31 @@ class MainWindow : public QMainWindow
         int findStreamIndex(const Ptr<DataStream>& stream);
 
 
+        template<class T>
+        inline T* findSubwindowByType()
+        {
+            QList<QMdiSubWindow*> lst = mdiArea->subWindowList();
+            for (auto it = lst.begin(); it != lst.end(); ++it) {
+                T* ptr = dynamic_cast<T*>((*it)->widget());
+                if (ptr != nullptr) return ptr;
+            }
+            return nullptr;
+        }
+
+        template<class T>
+        inline void reopenSingletonSubwindow(const char* title)
+        {
+            std::vector<QWidget*> toRemove;
+            QList<QMdiSubWindow*> lst = mdiArea->subWindowList();
+            for (auto it = lst.begin(); it != lst.end(); ++it) {
+                T* ptr = dynamic_cast<T*>((*it)->widget());
+                if (ptr != nullptr) toRemove.push_back(*it);
+            }
+            for (int i = 0; i < int(toRemove.size()); ++i) mdiArea->removeSubWindow(toRemove[i]);
+
+            addSubWindow(new T(*this), title);
+        }
+
     public slots:
 
         void exit();
@@ -146,6 +171,7 @@ class MainWindow : public QMainWindow
         void openImageStream();
 
         void openSceneView();
+        void openAugmentedView();
 
         void openChessboardFinder();
         void openDepthCorrector();
@@ -160,6 +186,7 @@ class MainWindow : public QMainWindow
         void setStatusText(QString);
         void setStatusProgress(int, int);
         void operationFinished();
+
 };
 
 

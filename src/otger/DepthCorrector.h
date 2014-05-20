@@ -20,7 +20,7 @@ class DepthCorrectorStream : public AsyncStream
         DepthCorrectorStream(Ptr<DataStream> baseStream) :
             base(baseStream)
         {
-            depthFrame = newDepthFrame();
+            depthFrame = new DepthFrame();
 
             start();
         }
@@ -37,27 +37,27 @@ class DepthCorrectorStream : public AsyncStream
 
         void stream() override
         {
-            DataStream::DepthPixel* input = newDepthFrame();
-            DataStream::DepthPixel* output = newDepthFrame();
+            DepthFrame* input = new DepthFrame();
+            DepthFrame* output = new DepthFrame();
             while (!stopping)
             {
                 base->waitForFrame(nullptr, input, nullptr);
     
-                correctDepthFrame(input, output);
+                correctDepthFrame(*input, *output);
 
                 pushFrame(nullptr, output, nullptr);
             }
-            delete[] input;
-            delete[] output;
+            delete input;
+            delete output;
         }
 
-        static void correctDepthFrame(const DataStream::DepthPixel* source, DataStream::DepthPixel* target);
+        static void correctDepthFrame(const DepthFrame& source, DepthFrame& target);
 
     private:
 
-        static void correctDepthFrameA(const DataStream::DepthPixel* source, DataStream::DepthPixel* target);
-        static void correctDepthFrameB(const DataStream::DepthPixel* source, DataStream::DepthPixel* target);
-        static void correctDepthFrameC(const DataStream::DepthPixel* source, DataStream::DepthPixel* target);
+        static void correctDepthFrameA(const DepthFrame& source, DepthFrame& target);
+        static void correctDepthFrameB(const DepthFrame& source, DepthFrame& target);
+        static void correctDepthFrameC(const DepthFrame& source, DepthFrame& target);
 
 };
 

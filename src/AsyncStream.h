@@ -20,9 +20,9 @@ class AsyncStream : private QThread, public DataStream
     public:
 
         AsyncStream() :
-            colorFrame(nullptr),
-            depthFrame(nullptr),
-            skeletonFrame(nullptr),
+            colorFrame(),
+            depthFrame(),
+            skeletonFrame(),
             currentFrame(),
             stopping(false),
             refs(1)
@@ -32,8 +32,8 @@ class AsyncStream : private QThread, public DataStream
 
         virtual ~AsyncStream()
         {
-            if (colorFrame != nullptr) delete[] colorFrame;
-            if (depthFrame != nullptr) delete[] depthFrame;
+            if (colorFrame != nullptr) delete colorFrame;
+            if (depthFrame != nullptr) delete depthFrame;
             if (skeletonFrame != nullptr) delete skeletonFrame;
         }
 
@@ -76,19 +76,19 @@ class AsyncStream : private QThread, public DataStream
         }
 
 
-        bool waitForFrame(ColorPixel* colorFrame, DepthPixel* depthFrame, NUI_SKELETON_FRAME* skeletonFrame, FrameNum* frameNum) override
+        bool waitForFrame(ColorFrame* colorFrame, DepthFrame* depthFrame, SkeletonFrame* skeletonFrame, FrameNum* frameNum) override
         {
             mutex.lock();
             bool newFrame = nextFrame.wait(&mutex);
             if (newFrame) {
                 if (colorFrame != nullptr && this->colorFrame != nullptr) {
-                    memcpy(colorFrame, this->colorFrame, COLOR_FRAME_SIZE);
+                    *colorFrame = *this->colorFrame;
                 }
                 if (depthFrame != nullptr && this->depthFrame != nullptr) {
-                    memcpy(depthFrame, this->depthFrame, DEPTH_FRAME_SIZE);
+                    *depthFrame = *this->depthFrame;
                 }
                 if (skeletonFrame != nullptr && this->skeletonFrame != nullptr) {
-                    memcpy(skeletonFrame, this->skeletonFrame, sizeof(NUI_SKELETON_FRAME));
+                    *skeletonFrame = *this->skeletonFrame;
                 }
             }
             mutex.unlock();
@@ -96,7 +96,7 @@ class AsyncStream : private QThread, public DataStream
         }
 
 
-        bool getColorFrame(ColorPixel* data, FrameNum* num) override
+        bool getColorFrame(ColorFrame& frame, FrameNum* num) override
         {
             if (colorFrame == nullptr) return false;
             bool advanced = false;
@@ -104,7 +104,7 @@ class AsyncStream : private QThread, public DataStream
             if (num == nullptr || *num != currentFrame) {
                 advanced = true;
                 if (num != nullptr) *num = currentFrame;
-                memcpy(data, colorFrame, COLOR_FRAME_SIZE);
+                frame = *colorFrame;
             }
             mutex.unlock();
             return true;
@@ -118,13 +118,13 @@ class AsyncStream : private QThread, public DataStream
             if (num == nullptr || *num != currentFrame) {
                 advanced = true;
                 if (num != nullptr) *num = currentFrame;
-                Utils::colorFrameToRgb(colorFrame, mat);
+                Utils::colorFrameToRgb(*colorFrame, mat);
             }
             mutex.unlock();
             return advanced;
         }
 
-        bool getDepthFrame(DepthPixel* data, FrameNum* num) override
+        bool getDepthFrame(DepthFrame& frame, FrameNum* num) override
         {
             if (depthFrame == nullptr) return false;
             bool advanced = false;
@@ -132,13 +132,13 @@ class AsyncStream : private QThread, public DataStream
             if (num == nullptr || *num != currentFrame) {
                 advanced = true;
                 if (num != nullptr) *num = currentFrame;
-                memcpy(data, depthFrame, DEPTH_FRAME_SIZE);
+                frame = *depthFrame;
             }
             mutex.unlock();
             return advanced;
         }
 
-        bool getSkeletonFrame(NUI_SKELETON_FRAME& frame, FrameNum* num) override
+        bool getSkeletonFrame(SkeletonFrame& frame, FrameNum* num) override
         {
             if (skeletonFrame == nullptr) return false;
             bool advanced = false;
@@ -146,7 +146,7 @@ class AsyncStream : private QThread, public DataStream
             if (num == nullptr || *num != currentFrame) {
                 advanced = true;
                 if (num != nullptr) *num = currentFrame;
-                memcpy(&frame, skeletonFrame, sizeof(NUI_SKELETON_FRAME));
+                frame = *skeletonFrame;
             }
             mutex.unlock();
             return advanced;
@@ -162,9 +162,9 @@ class AsyncStream : private QThread, public DataStream
 
         FrameNum currentFrame;
 
-        ColorPixel* colorFrame;
-        DepthPixel* depthFrame;
-        NUI_SKELETON_FRAME* skeletonFrame;
+        ColorFrame* colorFrame;
+        DepthFrame* depthFrame;
+        SkeletonFrame* skeletonFrame;
 
         int refs;
         volatile bool stopping;
@@ -197,21 +197,21 @@ class AsyncStream : private QThread, public DataStream
             mutex.unlock();
         }
 
-        void pushFrame(const ColorPixel* color, const DepthPixel* depth, const NUI_SKELETON_FRAME* skeleton)
+        void pushFrame(const ColorFrame* color, const DepthFrame* depth, const SkeletonFrame* skeleton)
         {
             mutex.lock();
 
             if (color != nullptr) {
-                if (colorFrame == nullptr) colorFrame = new ColorPixel[COLOR_FRAME_WIDTH * COLOR_FRAME_HEIGHT];
-                memcpy(colorFrame, color, COLOR_FRAME_SIZE);
+                if (colorFrame == nullptr) colorFrame = new ColorFrame();
+                *colorFrame = *color;
             }
             if (depth != nullptr) {
-                if (depthFrame == nullptr) depthFrame = new DepthPixel[DEPTH_FRAME_WIDTH * DEPTH_FRAME_HEIGHT];
-                memcpy(depthFrame, depth, DEPTH_FRAME_SIZE);
+                if (depthFrame == nullptr) depthFrame = new DepthFrame();
+                *depthFrame = *depth;
             }
             if (skeleton != nullptr) {
-                if (skeletonFrame == nullptr) skeletonFrame = new NUI_SKELETON_FRAME();
-                memcpy(skeletonFrame, skeleton, sizeof(NUI_SKELETON_FRAME));
+                if (skeletonFrame == nullptr) skeletonFrame = new SkeletonFrame();
+                *skeletonFrame = *skeleton;
             }
             ++currentFrame;
 

@@ -2,44 +2,47 @@
 #include "DepthCorrector.h"
 
 
-void DepthCorrectorStream::correctDepthFrameA(const DataStream::DepthPixel* source, DataStream::DepthPixel* target)
+void DepthCorrectorStream::correctDepthFrameA(const DepthFrame& source, DepthFrame& target)
 {
-    memcpy(target, source, DEPTH_FRAME_SIZE);
-    for (int c = 0; c < DEPTH_FRAME_HEIGHT * DEPTH_FRAME_WIDTH; ++c) {
-        unsigned short depth = target[c].depth;
+    target = source;
+    DepthPixel* pixels = target.pixels;
+    for (int c = 0; c < DepthFrame::HEIGHT * DepthFrame::WIDTH; ++c) {
+        unsigned short depth = pixels[c].depth;
 
         if (depth == 0) {
-            int col = c % DEPTH_FRAME_WIDTH;
-            int row = c / DEPTH_FRAME_WIDTH;
+            int col = c % DepthFrame::WIDTH;
+            int row = c / DepthFrame::WIDTH;
 
             if (col != 0) {
-                depth = target[c - 1].depth;
+                depth = pixels[c - 1].depth;
                 if (row != 0) {
-                    depth = (depth + target[col + (row - 1) * DEPTH_FRAME_WIDTH].depth) / 2;
+                    depth = (depth + pixels[col + (row - 1) * DepthFrame::WIDTH].depth) / 2;
                 }
             }
             else if (row != 0) {
-                depth = target[col + (row - 1) * DEPTH_FRAME_WIDTH].depth;
+                depth = pixels[col + (row - 1) * DepthFrame::WIDTH].depth;
             }
         }
 
         depth = (depth < MIN_DEPTH && depth != 0) ? MIN_DEPTH : depth;
         depth = (depth >= MAX_DEPTH) ? MAX_DEPTH - 1 : depth;
-        target[c].depth = depth;
+        pixels[c].depth = depth;
     }
 }
 
-void DepthCorrectorStream::correctDepthFrameB(const DataStream::DepthPixel* source, DataStream::DepthPixel* target)
+void DepthCorrectorStream::correctDepthFrameB(const DepthFrame& source, DepthFrame& target)
 {
-    static DataStream::DepthPixel* memory = nullptr;
-    if (memory == nullptr) {
-        memory = newDepthFrame();
-        memset(memory, 0, DEPTH_FRAME_SIZE);
+    static DepthFrame* memoryFrame = nullptr;
+    if (memoryFrame == nullptr) {
+        memoryFrame = new DepthFrame();
+        memoryFrame->clear();
     }
 
-    memcpy(target, source, DEPTH_FRAME_SIZE);
-    for (int c = 0; c < DEPTH_FRAME_HEIGHT * DEPTH_FRAME_WIDTH; ++c) {
-        unsigned short depth = target[c].depth;
+    target = source;
+    DepthPixel* pixels = target.pixels;
+    DepthPixel* memory = memoryFrame->pixels;
+    for (int c = 0; c < DepthFrame::HEIGHT * DepthFrame::WIDTH; ++c) {
+        unsigned short depth = pixels[c].depth;
         depth = (depth < MIN_DEPTH && depth != 0) ? MIN_DEPTH : depth;
         depth = (depth >= MAX_DEPTH) ? MAX_DEPTH - 1 : depth;
 
@@ -53,19 +56,21 @@ void DepthCorrectorStream::correctDepthFrameB(const DataStream::DepthPixel* sour
             else memory[c].depth = depth;
         }
 
-        target[c].depth = depth;
+        pixels[c].depth = depth;
     }
 }
 
-void DepthCorrectorStream::correctDepthFrameC(const DataStream::DepthPixel* source, DataStream::DepthPixel* target)
+void DepthCorrectorStream::correctDepthFrameC(const DepthFrame& source, DepthFrame& target)
 {
-    for (int c = 0; c < DEPTH_FRAME_HEIGHT * DEPTH_FRAME_WIDTH; ++c) {
-        target[c].playerIndex = source[c].playerIndex;
+    const DepthPixel* src = source.pixels;
+    DepthPixel* dest = target.pixels;
+    for (int c = 0; c < DepthFrame::HEIGHT * DepthFrame::WIDTH; ++c) {
+        dest[c].playerIndex = src[c].playerIndex;
 
-        unsigned short depth = source[c].depth;
+        unsigned short depth = src[c].depth;
         if (depth == 0) {
-            int col = c % DEPTH_FRAME_WIDTH;
-            int row = c / DEPTH_FRAME_WIDTH;
+            int col = c % DepthFrame::WIDTH;
+            int row = c / DepthFrame::WIDTH;
 
             struct {
                 unsigned short depth;
@@ -81,11 +86,11 @@ void DepthCorrectorStream::correctDepthFrameC(const DataStream::DepthPixel* sour
                     if (dx == 0 && dy == 0) continue;
                     int x = col + dx;
                     int y = row + dy;
-                    if (x < 0 || x >= DEPTH_FRAME_WIDTH || y < 0 || y >= DEPTH_FRAME_HEIGHT) continue;
+                    if (x < 0 || x >= DepthFrame::WIDTH || y < 0 || y >= DepthFrame::HEIGHT) continue;
 
-                    int idx = x + y*DEPTH_FRAME_WIDTH;
-                    if (source[idx].depth != 0) {
-                        unsigned short depth = source[idx].depth;
+                    int idx = x + y*DepthFrame::WIDTH;
+                    if (src[idx].depth != 0) {
+                        unsigned short depth = src[idx].depth;
                         int i;
                         for (i = 0; i < freqsN; ++i) {
                             if (freqs[i].depth == depth) {
@@ -120,12 +125,12 @@ void DepthCorrectorStream::correctDepthFrameC(const DataStream::DepthPixel* sour
 
         depth = (depth < MIN_DEPTH && depth != 0) ? MIN_DEPTH : depth;
         depth = (depth >= MAX_DEPTH) ? MAX_DEPTH - 1 : depth;
-        target[c].depth = depth;
+        dest[c].depth = depth;
     }
 }
 
 
-void DepthCorrectorStream::correctDepthFrame(const DataStream::DepthPixel* source, DataStream::DepthPixel* target)
+void DepthCorrectorStream::correctDepthFrame(const DepthFrame& source, DepthFrame& target)
 {
     correctDepthFrameB(source, target);
 }

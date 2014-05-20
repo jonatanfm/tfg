@@ -17,21 +17,22 @@ class WidgetAugmentedView : public WidgetOpenGL, public SubWindowWidget
         Ptr<DataStream> stream;
         Texture texture;
 
-        DataStream::FrameNum frameNum;
-        DataStream::ColorPixel* frame;
+        FrameNum frameNum;
+        ColorFrame frame;
 
     public:
         WidgetAugmentedView(MainWindow& mainWindow) :
             WidgetOpenGL(mainWindow)
         {
             auto& streams = mainWindow.getStreams();
-            if (streams.size() > 0) stream = streams[0];
+            if (streams.size() < 1) return;
+            
+            stream = streams[0];
 
             makeCurrent();
-            texture = RenderUtils::createTexture(COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
-            frame = DataStream::newColorFrame();
+            texture = RenderUtils::createTexture(ColorFrame::WIDTH, ColorFrame::HEIGHT);
 
-            stream->addNewFrameCallback(this, [this](const DataStream::ColorPixel*, const DataStream::DepthPixel*, const NUI_SKELETON_FRAME*) -> void {
+            stream->addNewFrameCallback(this, [this](const ColorFrame*, const DepthFrame*, const SkeletonFrame*) -> void {
                 emit this->triggerRefresh();
             });
         }
@@ -39,8 +40,6 @@ class WidgetAugmentedView : public WidgetOpenGL, public SubWindowWidget
         ~WidgetAugmentedView()
         {
             if (stream) stream->removeNewFrameCallback(this);
-
-            delete[] frame;
         }
 
         Ptr<DataStream> getStream() const override
@@ -50,23 +49,24 @@ class WidgetAugmentedView : public WidgetOpenGL, public SubWindowWidget
 
         bool render()
         {
+            if (!stream) return false;
             stream->getColorFrame(frame, &frameNum);
 
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
-            glOrtho(0, COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT, 0, -1, 1);
+            glOrtho(0, ColorFrame::WIDTH, ColorFrame::HEIGHT, 0, -1, 1);
 
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
 
 
             glBindTexture(GL_TEXTURE_2D, texture);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)frame);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ColorFrame::WIDTH, ColorFrame::HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)frame.pixels);
 
             RenderUtils::setColor(1.0f, 1.0f, 1.0f, 1.0f);
 
             RenderUtils::setTexture(texture);
-            RenderUtils::drawRect(0.0f, 0.0f, COLOR_FRAME_WIDTH, COLOR_FRAME_HEIGHT);
+            RenderUtils::drawRect(0.0f, 0.0f, ColorFrame::WIDTH, ColorFrame::HEIGHT);
             RenderUtils::setTexture(0);
 
             World& world = mainWindow.getWorld();
