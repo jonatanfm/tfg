@@ -436,7 +436,7 @@ void MainWindow::skeletonTraking()
         Ptr<DataStream> stream = w->getStream();
         if (stream != nullptr) {
             
-			/*addStream(new ChessboardDetectorStream(stream, 6, 6));*/
+			 addStream(new SkeletonStudy(stream));
             
         }
     }
