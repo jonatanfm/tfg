@@ -14,6 +14,7 @@
 #include <NuiSkeleton.h>
 #include <NuiImageCamera.h>
 
+// Stream that reads and provides data from a single Kinect device
 class KinectStream : public AsyncStream
 {
     //friend void runUpdaterWrapper(KinectStream* self);
@@ -24,8 +25,12 @@ class KinectStream : public AsyncStream
         KinectStream();
         ~KinectStream();
 
+        // Initialize to the Kinect with the given index.
         bool initialize(int sensorIndex = 0);
+
+        // Initialize to the Kinect with the given connection ID.
         bool initializeById(const OLECHAR* id);
+
 
         bool isOpened() const override
         {
@@ -49,31 +54,38 @@ class KinectStream : public AsyncStream
 
         std::string getName() const override
         {
-            return "Kinect" + sensor->NuiInstanceIndex();
+            char buffer[32];
+            sprintf(buffer, "Kinect %d", sensor->NuiInstanceIndex());
+            return buffer;
         }
 
+        // Returns, for all points in a color frame, the corresponding depth values.
+        bool mapColorFrameToDepthFrame(const DepthFrame& frame, OUT NUI_DEPTH_IMAGE_POINT* mapped);
+
     private:
-        INuiSensor* sensor;
+        INuiSensor* sensor; // The internal sensor object
 
-        HANDLE hEvent;
+        HANDLE hEvent; // Event signaled when a new frame is available
 
-        HANDLE colorStream;
-        HANDLE depthStream;
+        HANDLE colorStream; // Handle to the internal color stream
+        HANDLE depthStream; // Handle to the internal depth stream
 
-        INuiCoordinateMapper* mapper;
+        INuiCoordinateMapper* mapper; // The device coordinates mapper (for mapping color/depth/skeleton frames)
+
+        // Input frame buffers
 
         ColorFrame colorBuffer;
         DepthFrame depthBuffer;
         SkeletonFrame skeletonBuffer;
 
-        KinectStream(const KinectStream&);
-        KinectStream& operator=(const KinectStream&);
 
+        // Initialize the internal Kinect streams.
         bool initializeStreams();
 
-        void updateColorBuffer();
-        void updateDepthBuffer();
-        void updateSkeleton();
+
+        void updateColorBuffer(); // Read a single color frame from the device.
+        void updateDepthBuffer(); // Read a single depth frame from the device.
+        void updateSkeleton(); // Read a single skeleton frame from the device.
 
         void stream() override;
 

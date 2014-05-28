@@ -7,6 +7,8 @@
 
 class MainWindow;
 
+// A mode of interaction with the subwindow widgets.
+// Handles what happens when a widget receives events.
 class Mode
 {
     private:

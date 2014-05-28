@@ -6,6 +6,7 @@
 #include "globals.h"
 
 
+// Intrinsic callibration parameters for the color camera.
 struct IntrinsicParams
 {
     cv::Mat cameraMatrix;
@@ -13,6 +14,8 @@ struct IntrinsicParams
     double reprojectionError; // Root mean square, should be between 0.1 and 1.0 for a good calibration
 };
 
+
+// Extrinsic callibration parameters between a set of color cameras.
 struct ExtrinsicParams
 {
     cv::Mat R; // Rotation matrix between the 1st and the 2nd stream cameras coordinate systems
@@ -48,6 +51,8 @@ struct ExtrinsicParams
 
 };
 
+
+// Holds the state of one or more multi-device callibrations
 class SystemCalibration
 {
     private:
@@ -56,8 +61,6 @@ class SystemCalibration
         Calibrations calibrations;
 
     public:
-
-
 
         void reset()
         {

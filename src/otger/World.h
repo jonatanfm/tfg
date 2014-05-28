@@ -15,37 +15,58 @@ class btDiscreteDynamicsWorld;
 class btCollisionShape;
 
 class Floor;
-class Ball;
 class Skeleton;
 
+
+// Represents a physical world containing virtual objects
+// as well as users and other real scene information.
 class World : private QThread
 {
     public:
 
+        // Base class for all world objects
         class Object
         {
             public:
                 virtual ~Object() { }
 
+                // Render for projecting into 2D
                 virtual void render() = 0;
+
+                // Render for debugging into a 3D scene
+                virtual void renderDebug()
+                {
+                    render();
+                }
         };
 
 
     private:
 
+        // FPS of the simulation
         static const int SIMULATION_FPS = 60;
 
+        // Set to true while running.
         volatile bool running;
 
+        // Mutex to protect cross-thread accesses to the simulation state
         QMutex mutex;
+
+        // Enables notification of simulation advances
         QWaitCondition waitCondition;
 
+        // Mutex to protect cross-thread accesses to the skeleton frame
         QMutex skeletonMutex;
 
-        bool skeletonCurrentA;
+        // Double-buffered skeleton frames 
         SkeletonFrame skeletonA, skeletonB;
+        bool skeletonCurrentA;
 
+        // Incoming skeleton frame
         SkeletonFrame newSkeleton;
+
+
+        // Physics simulation objects
 
         btBroadphaseInterface* broadphase;
     
@@ -57,13 +78,20 @@ class World : private QThread
         btDiscreteDynamicsWorld* dynamicsWorld;
 
 
-        Floor* floor;
-        Ball* ball;
 
+        // List of objects
+        std::vector<Object*> objects;
+
+        // The floor object
+        Floor* floor;
+
+        // The physics user skeleton object
         Skeleton* skeleton;
     
+        // Runs the simulation
         void run() override;
 
+        // Updates the physics user skeleton
         void updateSkeleton();
 
     public:
@@ -71,11 +99,23 @@ class World : private QThread
         World();
         ~World();
         
+        // Renders the world projected to 2D
         void render();
 
+        // Renders the world for debugging in a 3D scene
+        void renderDebug();
+
+        // Runs a single iteration of the simulation
         void runIteration();
 
+        // Updates the skeleton frame
         void setSkeleton(const SkeletonFrame* skeleton);
+
+        // Get a list of all world objects
+        std::vector<Object*>& getObjects()
+        {
+            return objects;
+        }
 
 };
 

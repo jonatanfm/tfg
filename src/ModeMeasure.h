@@ -7,6 +7,8 @@
 
 #include "Mode.h"
 
+// Mode of interaction that reports distances in the depth view.
+// (Not implemented yet)
 class MeasureMode : public Mode
 {
     private:

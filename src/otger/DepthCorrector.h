@@ -7,13 +7,14 @@
 
 #include "../AsyncStream.h"
 
+// Stream that attempts to correct depth maps noise and shows the result in "real time".
 class DepthCorrectorStream : public AsyncStream
 {
     private:
-        Ptr<DataStream> base;
+        Ptr<DataStream> base; // The depth frame source stream.
 
-        static const int MIN_DEPTH = NUI_IMAGE_DEPTH_MINIMUM >> NUI_IMAGE_PLAYER_INDEX_SHIFT;
-        static const int MAX_DEPTH = NUI_IMAGE_DEPTH_MAXIMUM >> NUI_IMAGE_PLAYER_INDEX_SHIFT;
+        static const int MIN_DEPTH = DepthFrame::MIN_DEPTH;
+        static const int MAX_DEPTH = DepthFrame::MAX_DEPTH;
 
     public:
 
@@ -51,13 +52,16 @@ class DepthCorrectorStream : public AsyncStream
             delete output;
         }
 
+        // Correct a single depth frame
         static void correctDepthFrame(const DepthFrame& source, DepthFrame& target);
 
     private:
 
-        static void correctDepthFrameA(const DepthFrame& source, DepthFrame& target);
-        static void correctDepthFrameB(const DepthFrame& source, DepthFrame& target);
-        static void correctDepthFrameC(const DepthFrame& source, DepthFrame& target);
+        // Implementations
+
+        static void correctDepthFrame_Naive(const DepthFrame& source, DepthFrame& target);
+        static void correctDepthFrame_Memory(const DepthFrame& source, DepthFrame& target);
+        static void correctDepthFrame_Rings(const DepthFrame& source, DepthFrame& target);
 
 };
 

@@ -15,6 +15,7 @@ class MainWindow;
     extern QPixmap qt_pixmapFromWinHICON(HICON icon);
 #endif
 
+// SubWindow of the MainWindow's Modal Document Interface (MDI) area.
 class SubWindow : public QMdiSubWindow
 {
     Q_OBJECT
@@ -26,6 +27,7 @@ class SubWindow : public QMdiSubWindow
             window(window)
         {
             #ifdef _WIN32
+                // Set the icon to the app icon.
                 HICON hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(102));
                 setWindowIcon(QIcon(qt_pixmapFromWinHICON(hIcon)));
             #endif
@@ -39,6 +41,8 @@ class SubWindow : public QMdiSubWindow
 };
 
 
+// A widget that is the root widget of a SubWindow.
+// (Does not inherit from QWidget due to virtual inheritance problems).
 class SubWindowWidget
 {
     public:

@@ -9,14 +9,15 @@
 
 #include "DataStream.h"
 
+// Static class defining miscellaneous utility functions
 class Utils
 {
     private:
         Utils();
-        ~Utils();
 
     public:
 
+        // Converts a cv::Mat to a string (for debugging)
         template<typename T>
         static std::string matToString(const cv::Mat& mat)
         {
@@ -32,12 +33,14 @@ class Utils
             return s + "}\n";
         }
 
+
+        // Encode a ColorFrame into a cv::Mat color image
         static void colorFrameToRgb(const ColorFrame& frame, cv::Mat& image)
         {
-            const ColorPixel* src = &frame.pixels[0];
-            const ColorPixel* end = &frame.pixels[0] + ColorFrame::WIDTH * ColorFrame::HEIGHT;
-
+            const ColorPixel* src = frame.pixels;
+            const ColorPixel* end = frame.pixels + ColorFrame::SIZE;
             unsigned char* dest = image.data;
+
             while (src < end) {
                 *dest++ = src->b;
                 *dest++ = src->g;
@@ -46,11 +49,12 @@ class Utils
             }
         }
 
+        // Decode a ColorFrame from a cv::Mat color image
         static void rgbToColorFrame(const cv::Mat& image, ColorFrame& frame)
         {
             const unsigned char* src = image.data;
-            ColorPixel* dest = &frame.pixels[0];
-            ColorPixel* end = &frame.pixels[0] + ColorFrame::WIDTH * ColorFrame::HEIGHT;
+            ColorPixel* dest = frame.pixels;
+            ColorPixel* end = frame.pixels + ColorFrame::SIZE;
 
             while (dest < end) {
                 dest->b = *src++;
@@ -60,11 +64,11 @@ class Utils
             }
         }
 
-
+        // Encode a DepthFrame into a cv::Mat color image
         static void depthFrameToRgb(const DepthFrame& frame, cv::Mat& image)
         {
-            const DepthPixel* src = &frame.pixels[0];
-            const DepthPixel* end = &frame.pixels[0] + DepthFrame::WIDTH * DepthFrame::HEIGHT;
+            const DepthPixel* src = frame.pixels;
+            const DepthPixel* end = frame.pixels + DepthFrame::SIZE;
 
             unsigned char* dest = image.data;
             while (src < end) {
@@ -75,11 +79,12 @@ class Utils
             }
         }
 
+        // Decode a DepthFrame from a cv::Mat color image
         static void rgbToDepthFrame(const cv::Mat& image, DepthFrame& frame)
         {
-            DepthPixel* dest = &frame.pixels[0];
+            DepthPixel* dest = frame.pixels;
             //if (image.isContinuous()) {
-            DepthPixel* end = &frame.pixels[0] + DepthFrame::WIDTH * DepthFrame::HEIGHT;
+            DepthPixel* end = frame.pixels + DepthFrame::SIZE;
             const unsigned char* src = image.data;
             while (dest < end) {
                 dest->depth = ((*src) << 8) | *(src + 1);
@@ -100,18 +105,6 @@ class Utils
                 }
             }*/
         }
-
-
-
-
-        /*static float depthToMeters(int depth)
-        {
-            if (depth < 2047)
-            {
-                return 1.0f / (depth * -0.0030711016f + 3.3309495161f);
-            }
-            return 0.0f;
-        }*/
 
 };
 

@@ -7,15 +7,17 @@
 
 #include "AsyncStream.h"
 
+// Stream that draws detected chessboard grids on the output color frames of another stream.
 class ChessboardDetectorStream : public AsyncStream
 {
     private:
-        Ptr<DataStream> base;
+        Ptr<DataStream> base; // The base stream
 
-        cv::Size chessboardSize;
+        cv::Size chessboardSize; // Size of the chessboard to find
 
     public:
 
+        // Create a new Chessboard Detector for the given stream, and the given chessboard grid size.
         ChessboardDetectorStream(Ptr<DataStream> baseStream, int rows, int cols) :
             base(baseStream),
             chessboardSize(rows, cols)

@@ -202,3 +202,18 @@ void KinectStream::stream()
     }
     else qDebug("[KinectStream] Thread exited with %d", hr);
 }
+
+
+bool KinectStream::mapColorFrameToDepthFrame(const DepthFrame& frame, OUT NUI_DEPTH_IMAGE_POINT* mapped)
+{
+    return TRUE == SUCCEEDED(mapper->MapColorFrameToDepthFrame(
+        NUI_IMAGE_TYPE_COLOR,
+        NUI_IMAGE_RESOLUTION_640x480,
+        NUI_IMAGE_RESOLUTION_640x480,
+        DepthFrame::SIZE,
+        (NUI_DEPTH_IMAGE_PIXEL*)frame.pixels,
+        DepthFrame::SIZE,
+        mapped
+    ));
+}
+

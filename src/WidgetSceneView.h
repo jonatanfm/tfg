@@ -11,31 +11,45 @@
 #include "DataStream.h"
 #include "WidgetOpenGL.h"
 
+// Widget implementing a 3D view of the scene.
+// When callibrated a set of cameras, will show their relative positions.
+// If Bullet support is enabled and a World is created, will render its virtual objects.
 class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 {
     private:
+
+        // Mutex to control updating of the skeleton frame.
         QMutex skeletonMutex;
+
+        // The last skeleton frame.
         SkeletonFrame skeleton;
 
+        // List of streams to show
+        // Stream 0 is the base stream whose color camera is taken as the origin.
         std::vector< Ptr<DataStream> > streams;
 
+        // List of transformation matrices between stream 0 and the remaining streams.
         std::vector<cv::Mat> transforms;
 
+        // Quadric object for rendering shapes.
         GLUquadric* quadric;
 
+
+        // Current scene camera position and orientation
         struct
         {
             float x, y, z;
             float pitch, yaw;
         } cam;
 
-
+        // Key pressed status
         struct
         {
             char w, a, s, d;
             char up, down, left, right;
         } keys;
 
+        // Last mouse registered position
         struct
         {
             int x, y;
@@ -150,8 +164,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
             // Draw objects
             #ifdef HAS_BULLET
             {
-                World& world = mainWindow.getWorld();
-                world.render();
+                mainWindow.getWorld().renderDebug();
             }
             #endif
 
@@ -169,6 +182,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
     protected:
 
+        // Set the key "key" to the status x
         void setKey(int key, int x)
         {
             switch (key) {
@@ -266,6 +280,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
             glEnd();
         }
 
+        // Draw the 3 axes XYZ in RGB color
         void drawAxes()
         {
             glDisable(GL_DEPTH_TEST);

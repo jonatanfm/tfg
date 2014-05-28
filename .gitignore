@@ -15,5 +15,8 @@ Makefile*
 *.suo
 *.sdf
 *.opensdf
+*.cd
+
+*.db
 
 config.pro

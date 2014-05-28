@@ -7,74 +7,51 @@
 
 #include "../SubWindow.h"
 #include "../WidgetOpenGL.h"
-#include "../RenderUtils.h"
 
 #include "../MainWindow.h"
 
-class WidgetAugmentedView : public WidgetOpenGL, public SubWindowWidget
+#include <QGLShaderProgram>
+
+class MainWindow;
+
+// Widget that displays an augmented view, showing a real scene with virtual objects.
+class WidgetAugmentedView : public WidgetOpenGL, protected QGLFunctions, public SubWindowWidget
 {
     private:
-        Ptr<DataStream> stream;
-        Texture texture;
+
+        Ptr<DataStream> stream; // The stream that provides color/depth/skeleton data.
+
+        Texture textureColor; // Color image texture
+        Texture textureDepth; // Depth data texture
 
         FrameNum frameNum;
-        ColorFrame frame;
+        ColorFrame colorFrame; // The input color frame
+        DepthFrame depthFrame; // The input depth frame
+
+        // Output buffer for depth-to-color frame mapping.
+        __declspec(align(16))
+        NUI_DEPTH_IMAGE_POINT mapping[DepthFrame::SIZE];
+
+        // Buffer for updatig the depth texture contents.
+        __declspec(align(16))
+        GLushort textureDepthBuffer[DepthFrame::SIZE];
+
+        // Shaders
+        QGLShaderProgram shaderDefault, shader2D;
 
     public:
-        WidgetAugmentedView(MainWindow& mainWindow) :
-            WidgetOpenGL(mainWindow)
-        {
-            auto& streams = mainWindow.getStreams();
-            if (streams.size() < 1) return;
-            
-            stream = streams[0];
+        WidgetAugmentedView(MainWindow& mainWindow);
 
-            makeCurrent();
-            texture = RenderUtils::createTexture(ColorFrame::WIDTH, ColorFrame::HEIGHT);
-
-            stream->addNewFrameCallback(this, [this](const ColorFrame*, const DepthFrame*, const SkeletonFrame*) -> void {
-                emit this->triggerRefresh();
-            });
-        }
-
-        ~WidgetAugmentedView()
-        {
-            if (stream) stream->removeNewFrameCallback(this);
-        }
+        ~WidgetAugmentedView();
 
         Ptr<DataStream> getStream() const override
         {
             return stream;
         }
 
-        bool render()
-        {
-            if (!stream) return false;
-            stream->getColorFrame(frame, &frameNum);
+        void initialize() override;
 
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0, ColorFrame::WIDTH, ColorFrame::HEIGHT, 0, -1, 1);
-
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
-
-
-            glBindTexture(GL_TEXTURE_2D, texture);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ColorFrame::WIDTH, ColorFrame::HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)frame.pixels);
-
-            RenderUtils::setColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-            RenderUtils::setTexture(texture);
-            RenderUtils::drawRect(0.0f, 0.0f, ColorFrame::WIDTH, ColorFrame::HEIGHT);
-            RenderUtils::setTexture(0);
-
-            World& world = mainWindow.getWorld();
-
-            // TODO
-
-            return true;
-        }
+        bool render() override;
 
 };
 

@@ -15,6 +15,8 @@ CONFIG(debug, debug|release) {
     OBJECTS_DIR = ../build/release
 }
 
+#INCLUDEPATH += ../include
+
 
 INCLUDEPATH += $$(KINECTSDK10_DIR)/inc
 LIBS += -L$$(KINECTSDK10_DIR)/lib/x86
@@ -36,7 +38,7 @@ SOURCES += \
     WidgetOpenGL.cpp \
     WidgetRecorder.cpp \
     otger/DepthCorrector.cpp \
-	jonatan/SkeletonStudy.cpp
+    jonatan/SkeletonStudy.cpp
 
 HEADERS += \
     globals.h \
@@ -65,7 +67,7 @@ HEADERS += \
     WidgetRecorder.h \
     WidgetStreamManager.h \
     otger/DepthCorrector.h \
-	jonatan/SkeletonStudy.h
+    jonatan/SkeletonStudy.h
 
 FORMS += WidgetRecorder.ui
 
@@ -77,7 +79,8 @@ exists(../config.pro) {
     message("Configured with Bullet")
 
     SOURCES += \
-        otger/World.cpp
+        otger/World.cpp \
+        otger/WidgetAugmentedView.cpp
         
 #        otger/GLDebugDrawer.cpp
         
@@ -97,7 +100,7 @@ exists(../config.pro) {
     message("Configured with LIBXL")
 
     INCLUDEPATH += $$(LIBXL_DIR)/include_cpp
-    LIBS += -L$$(LIBXL_DIR)/lib
+    LIBS += -L$$(LIBXL_DIR)/lib libxl.lib
     
     DEFINES += HAS_LIBXL
 }

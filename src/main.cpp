@@ -48,6 +48,7 @@
     return areEqual;
 }*/
 
+
 // Program entry point
 int main(int argc, char* argv[])
 {
@@ -72,3 +73,4 @@ int main(int argc, char* argv[])
 
     return returnValue;
 }
+

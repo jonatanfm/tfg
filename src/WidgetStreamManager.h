@@ -14,20 +14,23 @@
 
 #include "Calibrator.h"
 
+// Shows a list of the currently open streams and allows operations on ordered subsets of them.
 class WidgetStreamManager : public QWidget, public SubWindowWidget
 {
     Q_OBJECT
 
     private:
-        QListWidget* list;
+        QListWidget* list; // The list UI element
 
         MainWindow& mainWindow;
 
+        // Gets the pointer stored in a list item
         inline DataStream* getStreamPtr(QListWidgetItem* item)
         {
             return (DataStream*) ((unsigned long) item->data(Qt::UserRole).toULongLong());
         }
 
+        // Gets the shared pointer corresponding to the pointer stored in a list item
         inline Ptr<DataStream> getStream(QListWidgetItem* item)
         {
             DataStream* ptr = getStreamPtr(item);
@@ -67,6 +70,8 @@ class WidgetStreamManager : public QWidget, public SubWindowWidget
             setLayout(layout);
         }
 
+
+        // Updates the list
         void refresh()
         {
             std::vector<DataStream*> selection;

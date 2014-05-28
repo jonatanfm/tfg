@@ -9,6 +9,7 @@
 #include "DataStream.h"
 #include "WidgetOpenGL.h"
 
+// Widget that shows the color frames provided by a stream.
 class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
 {
     private:
@@ -41,7 +42,7 @@ class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
             return stream;
         }
 
-        bool render()
+        bool render() override
         {
             stream->getColorFrame(frame, &frameNum);
 

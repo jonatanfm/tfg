@@ -5,9 +5,11 @@
 
 #include "DataStream.h"
 
+// Stream that holds a single fixed frame.
 class FixedFrameStream : public DataStream
 {
     public:
+        // Create a new FixedFrameStream opening the given files. If an empty string is passed it is ignored.
         FixedFrameStream(const std::string& colorFile, const std::string& depthFile, const std::string& skeletonFile);
 
 
@@ -21,7 +23,9 @@ class FixedFrameStream : public DataStream
         bool getSkeletonFrame(SkeletonFrame& frame, FrameNum* num = nullptr) override;
 
 
+        // Set the color frame. Used mainly for debugging.
         void setColorImage(cv::Mat& mat);
+
 
         std::string getName() const override
         {
@@ -50,11 +54,11 @@ class FixedFrameStream : public DataStream
 
     private:
 
-        std::string name;
+        std::string name; // Stream name, derived from one of the open files
 
-        std::unique_ptr<ColorFrame> colorFrame;
-        std::unique_ptr<DepthFrame> depthFrame;
-        std::unique_ptr<SkeletonFrame> skeletonFrame;
+        std::unique_ptr<ColorFrame> colorFrame; // The held color frame, or null
+        std::unique_ptr<DepthFrame> depthFrame; // The held depth frame, or null
+        std::unique_ptr<SkeletonFrame> skeletonFrame; // The held skeleton frame, or null
 };
 
 #endif

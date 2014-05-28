@@ -31,8 +31,7 @@ void DataStream::deleting(DataStream* obj)
 
 
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    drawSkeletons(true)
+    QMainWindow(parent)
 {
     instance = this;
 
@@ -169,8 +168,6 @@ void MainWindow::toggleSkeletonsOverlay(WidgetOpenGL* widget)
 
 void MainWindow::setDrawSkeletons(bool draw)
 {
-    drawSkeletons = draw;
-
     QMdiSubWindow* win = mdiArea->currentSubWindow();
     if (win == nullptr) return;
 
@@ -436,7 +433,7 @@ void MainWindow::skeletonTraking()
         Ptr<DataStream> stream = w->getStream();
         if (stream != nullptr) {
             
-			 addStream(new SkeletonStudy(stream));
+             addStream(new SkeletonStudy(stream));
             
         }
     }
@@ -445,12 +442,12 @@ void MainWindow::skeletonTraking()
 void MainWindow::skeletonWorking()
 {
     SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget()); 
-	if (w != nullptr) { 
-		SkeletonStudy* stream = dynamic_cast<SkeletonStudy*>(w->getStream().obj);
-		if (stream != nullptr) { 
-			stream->changeState();
-		} 
-	}
+    if (w != nullptr) { 
+        SkeletonStudy* stream = dynamic_cast<SkeletonStudy*>(w->getStream().obj);
+        if (stream != nullptr) { 
+            stream->changeState();
+        } 
+    }
 }
 
 void MainWindow::startOperation(Operation* op, std::function< void() > callback)
@@ -492,8 +489,14 @@ void MainWindow::startOperation(Operation* op, std::function< void() > callback)
 
 
 
-
 #pragma region Setup UI
+//
+// Setup the window UI (the menus)
+//
+
+
+// Some auxiliar defines to simplify the menus creation:
+
 
 #define MENU(_text) \
     menu = new QMenu(QApplication::translate("MainWindow", (_text), 0), menubar); \
@@ -510,6 +513,15 @@ void MainWindow::startOperation(Operation* op, std::function< void() > callback)
         QObject::connect(action, SIGNAL(_signal), this, SLOT(_slot)); \
         menu->addAction(action); \
     }
+
+#define SHORTCUT(_keys) { action->setShortcut(QKeySequence(_keys)); }
+
+#define ACTION_SHORTCUT(_text, _slot, _keys) { \
+        ACTION(_text, _slot); \
+        SHORTCUT(_keys); \
+    }
+
+
 
 void MainWindow::setupUi()
 {
@@ -531,15 +543,16 @@ void MainWindow::setupUi()
 
     MENU("View");
     {
-        ACTION("Scene View", openSceneView());
+        ACTION_SHORTCUT("Scene View", openSceneView(), Qt::Key_F3);
 
         #ifdef HAS_BULLET
-            ACTION("Augmented View", openAugmentedView());
+            ACTION_SHORTCUT("Augmented View", openAugmentedView(), Qt::Key_F4);
         #endif
 
         menu->addSeparator();
 
         ACTION_2("Draw Skeletons", triggered(bool), setDrawSkeletons(bool));
+        SHORTCUT(Qt::Key_F5);
         action->setCheckable(true);
         action->setChecked(false);
         actionDrawSkeleton = action;
@@ -551,21 +564,21 @@ void MainWindow::setupUi()
 
         ACTION("Correct depth", openDepthCorrector());
 
-		ACTION("Track Skeleton Info", skeletonTraking());
+        ACTION("Track Skeleton Info", skeletonTraking());
 
-		ACTION("Change Skeleton Info", skeletonWorking());
+        ACTION("Change Skeleton Info", skeletonWorking());
 
-        ACTION("Record", openRecorder());
+        ACTION_SHORTCUT("Record", openRecorder(), Qt::Key_F12);
     }
 
     MENU("Streams");
     {
-        ACTION("Stream Manager", openStreamManager());
+        ACTION_SHORTCUT("Stream Manager", openStreamManager(), Qt::Key_F1);
 
         menu->addSeparator();
 
-        ACTION("Kinect 1", openKinect1());
-        ACTION("Kinect 2", openKinect2());
+        ACTION_SHORTCUT("Kinect 1", openKinect1(), Qt::CTRL + Qt::Key_1);
+        ACTION_SHORTCUT("Kinect 2", openKinect2(), Qt::CTRL + Qt::Key_2);
 
         menu->addSeparator();
 

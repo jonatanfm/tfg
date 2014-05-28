@@ -1,10 +1,17 @@
+//
+// Includes common headers and declares global functions / defines.
+//
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
 #pragma once
 
-// Disable "Unreferenced formal parameter"
-#pragma warning(disable : 4100)
+#ifdef _MSC_VER
+
+    // Disable "Unreferenced formal parameter" warning
+    #pragma warning(disable : 4100)
+
+#endif
 
 
 //
@@ -24,18 +31,16 @@
 #include <memory>
 
 
+
 //
 // Windows
 //
-
-#ifndef WIN32_LEAN_AND_MEAN
-  //#define WIN32_LEAN_AND_MEAN
-#endif
 
 #include <Windows.h>
 
 #undef min
 #undef max
+
 
 //
 // Kinect
@@ -58,31 +63,6 @@
     #pragma comment(lib, "opencv_imgproc249d")
     #pragma comment(lib, "opencv_calib3d249d")
     #pragma comment(lib, "opencv_highgui249d")
-
-
-    // If static libs
-    
-    /*#pragma comment(lib, "opencv_contrib249d")
-    #pragma comment(lib, "opencv_legacy249d")
-    #pragma comment(lib, "opencv_ml249d")
-    #pragma comment(lib, "opencv_objdetect249d")
-    #pragma comment(lib, "opencv_calib3d249d")
-    #pragma comment(lib, "opencv_video249d")
-    #pragma comment(lib, "opencv_features2d249d")
-    #pragma comment(lib, "opencv_highgui249d")
-    #pragma comment(lib, "opencv_flann249d")
-    #pragma comment(lib, "opencv_imgproc249d")
-    #pragma comment(lib, "opencv_core249d")
-
-    #pragma comment(lib, "libjpegd")
-    #pragma comment(lib, "libpngd")
-    #pragma comment(lib, "libtiffd")
-    #pragma comment(lib, "libjasperd")
-    #pragma comment(lib, "IlmImfd")
-
-    #pragma comment(lib, "zlibd")*/
-
-
 #else
     #pragma comment(lib, "opencv_core249")
     #pragma comment(lib, "opencv_imgproc249")
@@ -104,15 +84,14 @@
 
 #pragma comment(lib, "opengl32")
 #pragma comment(lib, "glu32")
-#include <gl/GL.h>
-#include <gl/GLU.h>
 
-// GL.h/QtOpenGL conflict fix
+#include <GL/gl.h>
+#include <GL/glu.h>
+
+// gl.h/QtOpenGL conflict fix
 #define GLdouble GLdouble
 
 #include <QtOpenGL>
-
-
 
 
 
@@ -120,17 +99,29 @@
 // Misc
 //
 
+// Shared Pointer (pointer with reference count and auto-delete)
 using cv::Ptr;
 
+// Unique Pointer (pointer with auto-delete)
 using std::unique_ptr;
 
+
+
+// Defines for better readability
+
+// OUT: indicates that a function argument/parameter is to be changed to output a result.
 #ifndef OUT
     #define OUT
 #endif
 
+// INOUT: indicates that a function argument/parameter may be both read and modified
 #ifndef INOUT
     #define INOUT
 #endif
+
+
+
+// Common operations
 
 #ifndef MAX
     #define MAX(x, y) (((x) > (y))? (x) : (y))
@@ -140,6 +131,8 @@ using std::unique_ptr;
     #define MIN(x, y) (((x) < (y))? (x) : (y))
 #endif
 
+
+// Common constants
 
 const float PI = 3.14159265358979323846f;
 

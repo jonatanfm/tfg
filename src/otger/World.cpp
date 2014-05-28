@@ -11,9 +11,9 @@
     #pragma comment(lib, "bulletcollision_vs2010_debug")
     #pragma comment(lib, "bulletdynamics_vs2010_debug")
 #else
-    #pragma comment(lib, "linearmath_vs2010_release")
-    #pragma comment(lib, "bulletcollision_vs2010_release")
-    #pragma comment(lib, "bulletdynamics_vs2010_release")
+    #pragma comment(lib, "linearmath_vs2010")
+    #pragma comment(lib, "bulletcollision_vs2010")
+    #pragma comment(lib, "bulletdynamics_vs2010")
 #endif
 
 
@@ -113,9 +113,9 @@ class Ball : public BasicObject
         {
             shape = new btSphereShape(0.1f);
 
-            motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 50, 1)));
+            motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 0, 0.3f)));
 
-            btScalar mass = 1;
+            btScalar mass = 0;
             btVector3 inertia(0, 0, 0);
             shape->calculateLocalInertia(mass, inertia);
 
@@ -231,8 +231,7 @@ class Skeleton : public World::Object
 
         ~Skeleton()
         {
-            for (int i = 0; i < NUM_BONES; ++i) {
-            }
+
         }
 
         static int findSkeleton(const NUI_SKELETON_FRAME& frame)
@@ -346,8 +345,9 @@ World::World() :
     floor->addToWorld(dynamicsWorld);
 
 
-    ball = new Ball();
+    auto ball = new Ball();
     ball->addToWorld(dynamicsWorld);
+    objects.push_back(ball);
 
     skeleton = new Skeleton();
     skeleton->addToWorld(dynamicsWorld);
@@ -363,9 +363,12 @@ World::~World()
         this->wait();
     }
 
+    for (int i = 0; i < int(objects.size()); ++i) {
+        delete objects[i];
+    }
+
     delete skeleton;
     delete floor;
-    delete ball;
 
     delete dynamicsWorld;
     delete solver;
@@ -428,13 +431,27 @@ void World::runIteration()
 void World::render()
 {
     mutex.lock();
-        //dynamicsWorld->debugDrawWorld();
-        floor->render();
-        ball->render();
-        skeleton->render();
+        for (int i = 0; i < int(objects.size()); ++i) {
+            objects[i]->render();
+        }
     mutex.unlock();
 }
 
+void World::renderDebug()
+{
+    mutex.lock();
+        //dynamicsWorld->debugDrawWorld();
+        floor->render();
+
+        for (int i = 0; i < int(objects.size()); ++i) {
+            objects[i]->render();
+        }
+
+        glColor3f(1.0f, 0.0f, 0.0f);
+        skeleton->render();
+
+    mutex.unlock();
+}
 
 void World::setSkeleton(const SkeletonFrame* skeleton)
 {

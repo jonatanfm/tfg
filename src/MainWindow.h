@@ -29,6 +29,8 @@ class Calibrator;
 class AsyncOperation;
 class Operation;
 
+// Main window of the application.
+// Contains a Multiple Document Interface (MDI) area that allows subwindows.
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -40,37 +42,41 @@ class MainWindow : public QMainWindow
         explicit MainWindow(QWidget *parent = 0);
         ~MainWindow();
 
+        // Get the "singleton" kinect manager.
         KinectManager& getKinectManager()
         {
             return kinectManager;
         }
 
+        // Get the current mode of interaction (may be null).
         Ptr<Mode> getMode() const
         {
             return mode;
         }
 
+        // Get the list of all streams (may contain nulls).
         const std::vector< Ptr<DataStream> >& getStreams() const
         {
             return streams;
         }
 
+        // Gets the multi-device callibrations
         const SystemCalibration& getCalibration() const
         {
             return calibration;
         }
 
-        bool getDrawSkeletons() const
-        {
-            return drawSkeletons;
-        }
 
+        // Adds a new stream, automatically opening the corresponding windows.
         int addStream(const Ptr<DataStream>& stream);
 
+        // Closes a stream by a pointer to it.
         bool closeStream(DataStream* stream);
 
+        // Closes a strea by its index.
         bool closeStream(int i);
 
+        // Launches a new asynchronous Operation.
         void startOperation(Operation* op, std::function< void() > callback = nullptr);
 
     private:
@@ -81,9 +87,10 @@ class MainWindow : public QMainWindow
 
         SystemCalibration calibration;
 
+        // If configured with bullet
         #ifdef HAS_BULLET
             private:
-                World world;
+                World world; // The physics world
 
             public:
                 inline World& getWorld()
@@ -94,9 +101,14 @@ class MainWindow : public QMainWindow
             private:
         #endif
 
+        // The current mode of interaction (or null)
         Ptr<Mode> mode;
 
+        // The current ongoing asynchronous operation.
         Ptr<AsyncOperation> currentOperation;
+
+
+        // UI elements
 
         QStatusBar* statusBar;
         QLabel* statusBarText;
@@ -104,30 +116,37 @@ class MainWindow : public QMainWindow
 
         QAction* actionDrawSkeleton;
 
-        QMdiArea* mdiArea;
+        QMdiArea* mdiArea; // The area containing the subwindows
 
         QMenu* menuModes;
 
 
-        bool drawSkeletons;
-
+        // Initializes the UI elements
         void setupUi();
 
+        // Loads the configuration file (if exists) and opens the corresponding subwindows/streams.
         void initialize();
 
+        // Add a new subwindow for the given widget and with the given title.
         void addSubWindow(SubWindowWidget* widget, const QString& title);
 
+        // Opens the corresponding windows for the stream with index i.
         void openStreamWindows(int i);
 
+        // Opens a kinect stream by its device index.
         void openKinect(int i);
 
+        // Sets the current mode of interaction. "index" is the menu option index.
         void setMode(int index, Mode* mode);
 
+        // Toggles between showing or not the skeletons in the given widget (if can display skeletons).
         void toggleSkeletonsOverlay(WidgetOpenGL* widget);
 
+
+        // Returns the index of the given stream.
         int findStreamIndex(const Ptr<DataStream>& stream);
 
-
+        // Finds the (first) subwindow containing the templated type of widget.
         template<class T>
         inline T* findSubwindowByType()
         {
@@ -139,6 +158,9 @@ class MainWindow : public QMainWindow
             return nullptr;
         }
 
+        // If a subwindow with the templated type of widget does not exists, opens it with the given title.
+        // Otherwise it is closed and reopen.
+        // (Note: the widget is constructed with a single argument, being a reference to the MainWindow)
         template<class T>
         inline void reopenSingletonSubwindow(const char* title)
         {
@@ -153,6 +175,8 @@ class MainWindow : public QMainWindow
             addSubWindow(new T(*this), title);
         }
 
+
+    // QT slot functions, called as a result of interaction with the GUI elements (mainly the menus).
     public slots:
 
         void exit();
@@ -187,8 +211,8 @@ class MainWindow : public QMainWindow
         void setStatusProgress(int, int);
         void operationFinished();
 
-		void skeletonTraking();
-		void skeletonWorking();
+        void skeletonTraking();
+        void skeletonWorking();
 
 };
 

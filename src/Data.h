@@ -23,11 +23,11 @@ union ColorPixel
     };
 };
 
-// A depth frame pixel
+// A depth frame pixel containing the depth data, and the player index.
 struct DepthPixel
 {
-    unsigned short playerIndex;
-    unsigned short depth;
+    unsigned short playerIndex; // Player index (0 if none)
+    unsigned short depth; // Depth, in millimeters.
 };
 
 
@@ -69,7 +69,7 @@ struct FrameNum
 };
 
 
-
+// A Kinect color frame.
 struct ColorFrame
 {
     static const int WIDTH = 640;
@@ -105,6 +105,7 @@ struct ColorFrame
 };
 
 
+// A Kinect depth frame.
 struct DepthFrame
 {
     static const int WIDTH = 640;
@@ -112,6 +113,12 @@ struct DepthFrame
 
     static const int SIZE = WIDTH * HEIGHT;
     static const unsigned int BYTES = SIZE * sizeof(DepthPixel);  // Size in bytes of a Depth frame
+
+    // Minimum reliable depth value
+    static const int MIN_DEPTH = NUI_IMAGE_DEPTH_MINIMUM >> NUI_IMAGE_PLAYER_INDEX_SHIFT;
+
+    // Maximum reliable depth value
+    static const int MAX_DEPTH = NUI_IMAGE_DEPTH_MAXIMUM >> NUI_IMAGE_PLAYER_INDEX_SHIFT;
 
 
     DepthPixel pixels[SIZE];
@@ -140,6 +147,7 @@ struct DepthFrame
 };
 
 
+// A Kinect skeleton(s) frame.
 struct SkeletonFrame
 {
     NUI_SKELETON_FRAME frame;

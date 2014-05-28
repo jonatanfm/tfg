@@ -18,6 +18,7 @@ class MainWindow;
 
 class Recorder;
 
+// Widget that allows stream recording and single frame capturing.
 class WidgetRecorder : public QWidget, public SubWindowWidget
 {
     Q_OBJECT
@@ -28,12 +29,19 @@ class WidgetRecorder : public QWidget, public SubWindowWidget
 
     private:
         Ui::WidgetRecorder *ui;
+
         MainWindow& mainWindow;
         
-        bool recording;
+        bool recording; // Set to true while recording.
+
+        // List of active recorders
         std::vector<Recorder*> recorders;
 
+        // Refresh the list of streams, called when some changed.
         void updateStreamList();
+
+        
+        // Functions to start recording streams into files.
 
         void captureColorFrame(Ptr<DataStream> stream, QString filename);
         void captureDepthFrame(Ptr<DataStream> stream, QString filename);

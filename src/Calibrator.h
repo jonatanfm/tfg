@@ -11,6 +11,10 @@
 
 #include "Calibration.h"
 
+
+// Handles callibration:
+//  - Of one device color camera.
+//  - Of multiple devices relative positions.
 class Calibrator : public Operation
 {
     private:

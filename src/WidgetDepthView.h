@@ -9,6 +9,7 @@
 #include "DataStream.h"
 #include "WidgetOpenGL.h"
 
+// Widget that shows the depth frames provided by a stream.
 class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
 {
     private:
@@ -18,6 +19,7 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
         FrameNum frameNum;
         DepthFrame frame;
 
+        // Buffer to update the texture
         unsigned char textureBuffer[DepthFrame::SIZE * 4];
 
     public:
@@ -43,6 +45,7 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
             return stream;
         }
 
+        // Convert the depth frame to a RGBA image for visualization
         void frameToImage()
         {
             const DepthPixel* src = frame.pixels;
@@ -53,17 +56,14 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
             while (src < end) {
                 USHORT depth = src->depth;
 
-                const int MIN_DEPTH = NUI_IMAGE_DEPTH_MINIMUM >> NUI_IMAGE_PLAYER_INDEX_SHIFT;
-                const int MAX_DEPTH = NUI_IMAGE_DEPTH_MAXIMUM >> NUI_IMAGE_PLAYER_INDEX_SHIFT;
-
-                int valid = int(depth >= MIN_DEPTH && depth <= MAX_DEPTH);
+                int valid = int(depth >= DepthFrame::MIN_DEPTH && depth <= DepthFrame::MAX_DEPTH);
 
                 // CLAMP
                 //valid = 1;
                 /*depth -= ((depth - MAX_DEPTH) & -(depth > MAX_DEPTH));
                 depth -= ((depth - MIN_DEPTH) & -(depth < MIN_DEPTH));*/
 
-                BYTE val = (BYTE)(255 - ((depth - MIN_DEPTH) * 256) / (MAX_DEPTH - MIN_DEPTH));
+                BYTE val = (BYTE)(255 - ((depth - DepthFrame::MIN_DEPTH) * 256) / (DepthFrame::MAX_DEPTH - DepthFrame::MIN_DEPTH));
 
                 *dest++ = val | -(1 - valid);
                 *dest++ = val & (-valid);
@@ -75,7 +75,7 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
         }
 
 
-        bool render()
+        bool render() override
         {
             stream->getDepthFrame(frame, &frameNum);
             frameToImage();

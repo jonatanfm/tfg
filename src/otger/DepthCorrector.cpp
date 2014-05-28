@@ -2,7 +2,7 @@
 #include "DepthCorrector.h"
 
 
-void DepthCorrectorStream::correctDepthFrameA(const DepthFrame& source, DepthFrame& target)
+void DepthCorrectorStream::correctDepthFrame_Naive(const DepthFrame& source, DepthFrame& target)
 {
     target = source;
     DepthPixel* pixels = target.pixels;
@@ -30,7 +30,7 @@ void DepthCorrectorStream::correctDepthFrameA(const DepthFrame& source, DepthFra
     }
 }
 
-void DepthCorrectorStream::correctDepthFrameB(const DepthFrame& source, DepthFrame& target)
+void DepthCorrectorStream::correctDepthFrame_Memory(const DepthFrame& source, DepthFrame& target)
 {
     static DepthFrame* memoryFrame = nullptr;
     if (memoryFrame == nullptr) {
@@ -60,7 +60,7 @@ void DepthCorrectorStream::correctDepthFrameB(const DepthFrame& source, DepthFra
     }
 }
 
-void DepthCorrectorStream::correctDepthFrameC(const DepthFrame& source, DepthFrame& target)
+void DepthCorrectorStream::correctDepthFrame_Rings(const DepthFrame& source, DepthFrame& target)
 {
     const DepthPixel* src = source.pixels;
     DepthPixel* dest = target.pixels;
@@ -132,5 +132,5 @@ void DepthCorrectorStream::correctDepthFrameC(const DepthFrame& source, DepthFra
 
 void DepthCorrectorStream::correctDepthFrame(const DepthFrame& source, DepthFrame& target)
 {
-    correctDepthFrameB(source, target);
+    correctDepthFrame_Memory(source, target);
 }

@@ -66,8 +66,7 @@ void RecordedStream::stream()
     ColorFrame* color;
     DepthFrame* depth;
     SkeletonFrame* skeleton;
-    while (true) {
-        if (stopping) break;
+    while (!stopping) {
 
         if (resetting) {
             resetting = false;
@@ -89,16 +88,14 @@ void RecordedStream::stream()
         }
 
         depth = nullptr;
-        if (depthVideo.isOpened() && depthVideo.grab()) {
-            depthVideo.retrieve(recordedDepthFrame);
+        if (depthVideo.isOpened() && depthVideo.grab() && depthVideo.retrieve(recordedDepthFrame)) {
             Utils::rgbToDepthFrame(recordedDepthFrame, *depthBuffer);
             depth = depthBuffer.get();
         }
 
         color = nullptr;
-        if (colorVideo.isOpened() && colorVideo.grab()) {
-            colorVideo.retrieve(recordedColorFrame);
-            Utils::rgbToColorFrame(recordedDepthFrame, *colorBuffer);
+        if (colorVideo.isOpened() && colorVideo.grab() && colorVideo.retrieve(recordedColorFrame)) {
+            Utils::rgbToColorFrame(recordedColorFrame, *colorBuffer);
             color = colorBuffer.get();
         }
 
