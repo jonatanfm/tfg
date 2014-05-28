@@ -93,6 +93,15 @@ exists(../config.pro) {
     DEFINES += HAS_BULLET
 }
 
+!isEmpty(WITH_LIBXL) {
+    message("Configured with LIBXL")
+
+    INCLUDEPATH += $$(LIBXL_DIR)/include_cpp
+    LIBS += -L$$(LIBXL_DIR)/lib
+    
+    DEFINES += HAS_LIBXL
+}
+
 MOC_DIR = $$OBJECTS_DIR
 RCC_DIR = $$OBJECTS_DIR
 UI_DIR = $$OBJECTS_DIR

@@ -442,6 +442,16 @@ void MainWindow::skeletonTraking()
     }
 }
 
+void MainWindow::skeletonWorking()
+{
+    SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget()); 
+	if (w != nullptr) { 
+		SkeletonStudy* stream = dynamic_cast<SkeletonStudy*>(w->getStream().obj);
+		if (stream != nullptr) { 
+			stream->changeState();
+		} 
+	}
+}
 
 void MainWindow::startOperation(Operation* op, std::function< void() > callback)
 {
@@ -542,6 +552,8 @@ void MainWindow::setupUi()
         ACTION("Correct depth", openDepthCorrector());
 
 		ACTION("Track Skeleton Info", skeletonTraking());
+
+		ACTION("Change Skeleton Info", skeletonWorking());
 
         ACTION("Record", openRecorder());
     }

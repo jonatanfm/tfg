@@ -188,6 +188,7 @@ class MainWindow : public QMainWindow
         void operationFinished();
 
 		void skeletonTraking();
+		void skeletonWorking();
 
 };
 
