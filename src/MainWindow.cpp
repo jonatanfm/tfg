@@ -20,12 +20,7 @@
 #include "jonatan/CaptureSkeleton.h"
 #include "jonatan/SkeletonStudy.h"
 
-#ifdef HAS_LIBXL
 
-#include "libxl.h"
-using namespace libxl;
-
-#endif
 
 static MainWindow* instance = nullptr;
 
@@ -552,27 +547,29 @@ void MainWindow::skeletonWorking()
 {
 	int type = QInputDialog::getInt(this, tr("Enter mode to improve skeleton:"),
                                         tr("Enter mode to improve skeleton:\nWithout improvement: 0\nWith length check: 1\nWith recover losed data: 2"), 0, 0, 5);
-	if ( type == 0){
+	
+		QFileDialog dialog(this);
+		dialog.setAcceptMode(QFileDialog::AcceptOpen);
+		dialog.setFileMode(QFileDialog::ExistingFiles);
+		dialog.setNameFilter("Skeleton traked data (*.xls *.xlxs)");
+		if (dialog.exec()) {
+			QString tmp = dialog.selectedUrls().at(0).toEncoded();
+			QString delimiterPattern("///");
+			QStringList mailids = tmp.split(delimiterPattern);
+			tmp=mailids[1];
+
 			SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
 			if (w != nullptr) {
 				Ptr<DataStream> stream = w->getStream();
 				if (stream != nullptr) {
-            
-					 addStream(new SkeletonStudy(stream));
+
+					 addStream(new SkeletonStudy(stream,type,tmp));
+
             
 				}
 			}
-	}
-		
-	/*
-	QFileDialog dialog(this);
-    dialog.setAcceptMode(QFileDialog::AcceptOpen);
-    dialog.setFileMode(QFileDialog::ExistingFiles);
-    dialog.setNameFilter("Skeleton traked data (*.xls *.xlxs)");
-	if (dialog.exec()) {
-        qDebug() << "aa" <<dialog.selectedUrls().at(0)<<endl;
-
-	}}*/
+		}
+	
 }
 
 void MainWindow::startOperation(Operation* op, std::function< void() > callback)

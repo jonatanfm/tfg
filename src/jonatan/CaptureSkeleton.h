@@ -153,13 +153,10 @@ public:
 						sheet->writeNum(5, 2+i, maxim[i],centerFormat);
 						sheet->writeNum(6, 2+i, minim[i],centerFormat);
 					}
-					radiusLength = 0.272f;
-					tibiaLength = 0.4096f;
-					if(radiusLength!= 0 && tibiaLength !=0){
-						if(checkBoneLength(sheet,centerFormat)){
-							//for reescribir media
-						}
-					}
+
+					if(radiusLength!= 0 && tibiaLength !=0)
+							checkBoneLength(sheet,centerFormat);	
+						
 					
 				}
 				
@@ -201,9 +198,9 @@ public:
 		
 		}
 
-		bool checkBoneLength(Sheet* sheet,Format* centerFormat){
+		void checkBoneLength(Sheet* sheet,Format* centerFormat){
 
-			bool boneChange = false;
+			
 			float h,h1,h2;
 			h1=radiusLength/0.146f;
 			h2=tibiaLength/0.246f;
@@ -237,14 +234,11 @@ public:
 				if(values[i]!=0){
 					a=aver[i]+desv[i];
 					b=aver[i]-desv[i];
-					if(h*values[i] <b || a < h*values[i]){
-						boneChange=true;
+					if(h*values[i] <b || a < h*values[i])
 						sheet->writeNum(3, 2+i, h*values[i],centerFormat);
-					}
 				}
 			}
 
-			return boneChange;
 		
 		}
 
