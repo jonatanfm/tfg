@@ -7,7 +7,7 @@ RecordedStream::RecordedStream(const std::string& color, const std::string& dept
     depthFile(depth),
     skeletonFile(skeleton),
     resetting(false),
-    paused(false),
+    paused(true),
     advancing(false)
 {
 
@@ -57,7 +57,6 @@ RecordedStream::~RecordedStream()
 }
 
 static const int FPS = 30;
-//static const int FPS = 1;
 
 void RecordedStream::stream()
 {

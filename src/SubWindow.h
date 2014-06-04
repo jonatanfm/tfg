@@ -57,4 +57,30 @@ class SubWindowWidget
 };
 
 
+// A simple widget used as a stub view for non-representable streams
+class EmptyView : public QLabel, public SubWindowWidget
+{
+    private:
+        Ptr<DataStream> stream;
+
+    public:
+        EmptyView(MainWindow& mainWindow, Ptr<DataStream> stream) :
+            QLabel(),
+            stream(stream)
+        {
+            setText(QString::fromStdString(stream->getName()));
+        }
+
+        ~EmptyView()
+        {
+
+        }
+
+        Ptr<DataStream> getStream() const override
+        {
+            return stream;
+        }
+
+};
+
 #endif

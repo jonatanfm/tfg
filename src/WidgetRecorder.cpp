@@ -7,28 +7,186 @@
 
 #include "Utils.h"
 
-#pragma region class Recorder
+#pragma region Stream Recorder
 
+    // Manages recording over a single stream
+    class StreamRecorder
+    {
+        private:
+            std::string colorFile;
+            cv::VideoWriter colorWriter;
+            cv::Mat colorBuffer;
+            ColorFrame* colorFrame;
+            
+            std::string depthFile;
+            cv::VideoWriter depthWriter;
+            cv::Mat depthBuffer;
+            DepthFrame* depthFrame;
+            
+            std::string skeletonFile;
+            SkeletonIO skeletonWriter;
+            SkeletonFrame* skeletonFrame;
+            
+        public:
+            StreamRecorder(Ptr<DataStream> stream) :
+                stream(stream),
+                colorFrame(nullptr),
+                depthFrame(nullptr),
+                skeletonFrame(nullptr)
+            {
+
+            }
+
+            ~StreamRecorder()
+            {
+                colorWriter.release();
+                depthWriter.release();
+                skeletonWriter.close();
+                if (colorFrame != nullptr) delete colorFrame;
+                if (depthFrame != nullptr) delete depthFrame;
+                if (skeletonFrame != nullptr) delete skeletonFrame;
+            }
+            
+            bool recordColor(const QString& file, int fourcc)
+            {
+                //const int fourcc = CV_FOURCC('L', 'A', 'G', 'S');
+                //const int fourcc = CV_FOURCC('X', '2', '6', '4');
+                //const int fourcc = CV_FOURCC('Z', 'L', 'I', 'B');
+                //const int fourcc = CV_FOURCC('M', 'J', 'P', 'G');
+                //const int fourcc = CV_FOURCC_PROMPT;
+                //const int fourcc = CV_FOURCC('H', 'F', 'Y', 'U');
+                //int fourcc = CV_FOURCC('H', 'F', 'Y', 'U');
+
+                colorFile = (file + ".avi").toStdString();
+
+                colorWriter.open(
+                    colorFile,
+                    fourcc,
+                    30.0,
+                    cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT),
+                    true
+                );
+
+                if (colorWriter.isOpened()) {
+                    colorBuffer.create(cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT), CV_8UC3);
+                    colorFrame = new ColorFrame();
+                    return true;
+                }
+                colorFile.clear();
+                return false;
+            }
+            
+            bool recordDepth(const QString& file, int fourcc)
+            {
+                depthFile = (file + ".avi").toStdString();
+
+                depthWriter.open(
+                    depthFile,
+                    fourcc,
+                    30.0,
+                    cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT),
+                    true
+                );
+
+                if (depthWriter.isOpened()) {
+                    depthBuffer.create(cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT), CV_8UC3);
+                    depthFrame = new DepthFrame();
+                    return true;
+                }
+                depthFile.clear();
+                return false;
+            }
+            
+            bool recordSkeleton(const QString& file)
+            {
+                QString f = file;
+                //int i = f.lastIndexOf('.');
+                //if (i != -1) f = f.mid(0, i);
+                skeletonFile = (f + ".skel").toStdString();
+
+                if (skeletonWriter.openFileForWriting(skeletonFile.c_str())) {
+                    skeletonFrame = new SkeletonFrame();
+                    return true;
+                }
+                return false;
+            }
+
+            void getFiles(OUT std::vector<std::string>& files)
+            {
+                if (!colorFile.empty()) files.push_back(colorFile);
+                if (!depthFile.empty()) files.push_back(depthFile);
+                if (!skeletonFile.empty()) files.push_back(skeletonFile);
+            }
+            
+            void grabFrames()
+            {
+                stream->waitForFrame(colorFrame, depthFrame, skeletonFrame);
+            }
+            
+            void storeFrames()
+            {
+                if (colorFrame != nullptr) {
+                    Utils::colorFrameToRgb(*colorFrame, colorBuffer);
+                    colorWriter << colorBuffer;
+                }
+
+                if (depthFrame != nullptr) {
+                    Utils::depthFrameToRgb(*depthFrame, depthBuffer);
+                    depthWriter << depthBuffer;
+                }
+
+                if (skeletonFrame != nullptr) {
+                    skeletonWriter.writeFrame(*skeletonFrame);
+                }
+            }
+
+        protected:
+            Ptr<DataStream> stream;
+
+    };
+
+    //{
+    //writer.write(cv::Mat& mat)
+    //writer.
+
+    //cv::VideoWriter makeVideo;
+    //makeVideo.open("makevideo//newVideo.mp4", CV_FOURCC('X', '2', '6', '4'), 30, cv::Size(1600, 1200), true);
+    //cv::Mat image = imread("makevideo//frames//111.png");
+
+    //for (int i = 0; i < 200; i++)
+    //makeVideo << image;
+
+    //makeVideo.release();
+    //}
+
+#pragma endregion
+
+
+#pragma region Recorder
+
+    // Manages asynchronous recording for multiple streams
     class Recorder : private QThread
     {
+        private:
+            std::vector<StreamRecorder*> recorders;
+
         public:
-            Recorder(Ptr<DataStream> stream) :
-                recording(false),
-                stream(stream)
+            Recorder() :
+                recording(false)
             {
+
             }
 
-            virtual ~Recorder()
+            ~Recorder()
             {
-                stop();
+                for (size_t i = 0; i < recorders.size(); ++i) delete recorders[i];
             }
-
-            bool setup(const QString& filename, int fourcc)
+            
+            void add(StreamRecorder* recorder)
             {
-                if (recording) return false;
-                return setupWriter(filename, fourcc);
+                recorders.push_back(recorder);
             }
-
+            
             void begin()
             {
                 if (!recording) {
@@ -45,189 +203,38 @@
                 }
             }
 
-        protected:
-            Ptr<DataStream> stream;
+            void getFiles(OUT std::vector<std::string>& files)
+            {
+                for (size_t i = 0; i < recorders.size(); ++i) {
+                    recorders[i]->getFiles(files);
+                }
+            }
 
+        protected:
             volatile bool recording;
 
-            virtual bool setupWriter(const QString& file, int fourcc) = 0;
-
-            virtual void run() = 0;
-
-    };
-
-
-
-    /*{
-    writer.write(cv::Mat& mat)
-    writer.
-
-    cv::VideoWriter makeVideo;
-    makeVideo.open("makevideo//newVideo.mp4", CV_FOURCC('X', '2', '6', '4'), 30, cv::Size(1600, 1200), true);
-    cv::Mat image = imread("makevideo//frames//111.png");
-
-    for (int i = 0; i < 200; i++)
-    makeVideo << image;
-
-    makeVideo.release();
-    }*/
-
-#pragma endregion
-
-
-#pragma region class ColorRecorder
-
-    class ColorRecorder : public Recorder
-    {
-        public:
-            ColorRecorder(Ptr<DataStream> stream) :
-                Recorder(stream),
-                buffer(cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT), CV_8UC3)
-            {
-
-            }
-
-            bool setupWriter(const QString& file, int fourcc) override
-            {
-                //const int fourcc = CV_FOURCC('L', 'A', 'G', 'S');
-                //const int fourcc = CV_FOURCC('X', '2', '6', '4');
-                //const int fourcc = CV_FOURCC('Z', 'L', 'I', 'B');
-                //const int fourcc = CV_FOURCC('M', 'J', 'P', 'G');
-                //const int fourcc = CV_FOURCC_PROMPT;
-                //const int fourcc = CV_FOURCC('H', 'F', 'Y', 'U');
-                //int fourcc = CV_FOURCC('H', 'F', 'Y', 'U');
-
-                writer.open(
-                    (file + ".avi").toStdString(),
-                    fourcc,
-                    30.0,
-                    cv::Size(ColorFrame::WIDTH, ColorFrame::HEIGHT),
-                    true
-                );
-
-                return writer.isOpened();
-            }
-
             void run() override
             {
                 while (recording) {
-                    if (stream->waitForFrame(&frame, nullptr, nullptr)) {
-                        Utils::colorFrameToRgb(frame, buffer);
-                        writer << buffer;
+                    for (size_t i = 0; i < recorders.size(); ++i) {
+                        recorders[i]->grabFrames();
+                    }
+                    for (size_t i = 0; i < recorders.size(); ++i) {
+                        recorders[i]->storeFrames();
                     }
                 }
-                writer.release();
             }
-
-        private:
-            cv::VideoWriter writer;
-            cv::Mat buffer;
-
-            ColorFrame frame;
-
 
     };
 
 #pragma endregion
-
-
-#pragma region class DepthRecorder
-
-    class DepthRecorder : public Recorder
-    {
-        public:
-            DepthRecorder(Ptr<DataStream> stream) :
-                Recorder(stream),
-                buffer(cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT), CV_8UC3)
-            {
-
-            }
-
-            bool setupWriter(const QString& file, int fourcc) override
-            {
-                writer.open(
-                    (file + ".avi").toStdString(),
-                    fourcc,
-                    30.0,
-                    cv::Size(DepthFrame::WIDTH, DepthFrame::HEIGHT),
-                    true
-                );
-
-                return writer.isOpened();
-            }
-
-            void run() override
-            {
-                while (recording) {
-                    if (stream->waitForFrame(nullptr, &frame, nullptr)) {
-                        Utils::depthFrameToRgb(frame, buffer);
-                        writer << buffer;
-                    }
-                }
-                writer.release();
-            }
-
-        private:
-            cv::VideoWriter writer;
-            cv::Mat buffer;
-
-            DepthFrame frame;
-
-    };
-
-#pragma endregion
-
-#pragma region class SkeletonRecorder
-
-    class SkeletonRecorder : public Recorder
-    {
-        public:
-            SkeletonRecorder(Ptr<DataStream> stream) :
-                Recorder(stream)
-            {
-            
-            }
-
-            bool setupWriter(const QString& filename, int) override
-            {
-                QString f = filename;
-                //int i = f.lastIndexOf('.');
-                //if (i != -1) f = f.mid(0, i);
-                f += ".skel";
-
-                return writer.openFileForWriting(f.toUtf8().data());
-            }
-
-            void run() override
-            {
-                while (recording) {
-                    if (stream->waitForFrame(nullptr, nullptr, &frame)) {
-                        writer.writeFrame(frame);
-                    }
-                    Sleep(10);
-                }
-
-                writer.close();
-            }
-
-        private:
-            SkeletonFrame frame;
-
-            SkeletonIO writer;
-
-    };
-
-#pragma endregion
-
-
-
 
 
 WidgetRecorder::WidgetRecorder(MainWindow& mainWindow, QWidget *parent) :
     QWidget(parent),
     mainWindow(mainWindow),
     ui(new Ui::WidgetRecorder),
-    recording(false)
+    recorder(nullptr)
 {
     ui->setupUi(this);
     ui->txtFilename->setText(QDir::currentPath() + "/capture<TIME>_<ID>_<TYPE>");
@@ -240,13 +247,53 @@ WidgetRecorder::~WidgetRecorder()
     delete ui;
 }
 
+struct RecordTargets
+{
+    Ptr<DataStream> stream;
+    int index;
+    bool color, depth, skeleton;
+    
+    RecordTargets() : stream(nullptr), color(false), depth(false), skeleton(false) { }
+};
+
+std::string fixPath(const std::string& path)
+{
+    std::string str = path;
+    for (size_t i = 0; i < str.size(); ++i) {
+        if (str[i] == '/') str[i] = '\\';
+    }
+    return str;
+}
+
+void showFilesInExplorer(const std::vector<std::string>& files)
+{
+    size_t n = files.size();
+    if (n == 0) return;
+
+    std::string folder = fixPath(files[0]);
+    size_t i = folder.find_last_of('\\');
+    if (i != std::string::npos) folder = folder.substr(0, i);
+
+    #ifdef _WIN32
+        ITEMIDLIST* dir = ILCreateFromPathA(folder.c_str());
+        LPITEMIDLIST* items = new LPITEMIDLIST[n];
+        for (size_t i = 0; i < n; ++i) items[i] = ILCreateFromPathA(fixPath(files[i]).c_str());
+
+        SHOpenFolderAndSelectItems(dir, (unsigned int)n, (LPCITEMIDLIST*)items, 0);
+
+        for (size_t i = 0; i < n; ++i) ILFree(items[i]);
+        ILFree(dir);
+        delete[] items;
+    #endif
+}
+
 void WidgetRecorder::record()
 {
-    recording = !recording;
-    if (recording) {
+    if (recorder == nullptr) {
         QString filenameTemplate = ui->txtFilename->text();
 
         std::string codec = ui->txtCodecColor->text().toStdString();
+        qDebug() << "Codec size " << codec.size();
         int colorCodec = (codec.size() == 4) ? CV_FOURCC(codec[0], codec[1], codec[2], codec[3]) : CV_FOURCC_PROMPT;
 
         codec = ui->txtCodecDepth->text().toStdString();
@@ -256,7 +303,8 @@ void WidgetRecorder::record()
 
         KinectManager& k = mainWindow.getKinectManager();
 
-        bool allInitialized = true;
+        std::vector<RecordTargets> recordTargets;
+        
         for (int i = 0; i < ui->list->count(); ++i) {
             QListWidgetItem* item = ui->list->item(i);
             if (item->checkState() == Qt::Checked) {
@@ -265,64 +313,77 @@ void WidgetRecorder::record()
 
                 Ptr<KinectStream> stream = k.getStream(device);
 
-                Recorder* recorder;
-                QString type;
-                if (str.endsWith("Skeleton")) {
-                    recorder = new SkeletonRecorder(stream);
-                    type = "skeleton";
-                }
-                else if (str.endsWith("Depth")) {
-                    recorder = new DepthRecorder(stream);
-                    type = "depth";
-                }
-                else {
-                    recorder = new ColorRecorder(stream);
-                    type = "color";
-                }
+                if (stream != nullptr) {
+                    size_t j;
+                    for (j = 0; j < recordTargets.size(); ++j) {
+                        if (recordTargets[j].stream == stream) break;
+                    }
+                    if (j == recordTargets.size()) {
+                        recordTargets.push_back(RecordTargets());
+                        recordTargets[j].stream = stream;
+                        recordTargets[j].index = device;
+                    }
 
-                QString filename = filenameTemplate;
-                filename.replace("<TYPE>", type)
-                        .replace("<TIME>", timestamp)
-                        .replace("<ID>", QString::number(device));
-
-                if (!recorder->setup(filename, (type == "depth") ? depthCodec : colorCodec))
-                {
-                    allInitialized = false;
-                    break;
+                    if (str.endsWith("Skeleton")) recordTargets[j].skeleton = true;
+                    else if (str.endsWith("Depth")) recordTargets[j].depth = true;
+                    else recordTargets[j].color = true;
                 }
-                recorders.push_back(recorder);
+            }
+        }
+        
+        bool ok = true;
+        
+        Recorder* newRecorder = new Recorder();
+        for (size_t i = 0; i < recordTargets.size() && ok; ++i) {
+            if (recordTargets[i].color || recordTargets[i].depth || recordTargets[i].skeleton) {
+                StreamRecorder* rec = new StreamRecorder(recordTargets[i].stream);
+                
+                QString filename = filenameTemplate
+                    .replace("<TIME>", timestamp)
+                    .replace("<ID>", QString::number(recordTargets[i].index));
+
+                if (recordTargets[i].color && ok) {
+                    QString file = filename;
+                    ok = ok && rec->recordColor(file.replace("<TYPE>", "color"), colorCodec);
+                }
+                if (recordTargets[i].depth && ok) {
+                    QString file = filename;
+                    ok = ok && rec->recordDepth(file.replace("<TYPE>", "depth"), depthCodec);
+                }
+                if (recordTargets[i].skeleton && ok) {
+                    QString file = filename;
+                    ok = ok && rec->recordSkeleton(file.replace("<TYPE>", "skeleton"));
+                }
+                
+                newRecorder->add(rec);
             }
         }
 
-        if (allInitialized) {
-            if (recorders.size() > 0) {
-                ui->progressBar->setMaximum(0);
-                ui->btnRecord->setText("Stop");
+        if (ok) {
+            ui->progressBar->setMaximum(0);
+            ui->btnRecord->setText("Stop");
 
-                for (int i = 0; i < int(recorders.size()); ++i) {
-                    recorders[i]->begin();
-                }
-            }
+            recorder = newRecorder;
+            recorder->begin();
         }
         else {
-            recording = false;
-            for (int i = 0; i < int(recorders.size()); ++i) {
-                recorders[i]->stop();
-                delete recorders[i];
-            }
-            recorders.clear();
+            delete newRecorder;
             QMessageBox::critical(this, "Recording Error", "Unable to initialize video writer for one or more streams.\nTry changing the Codec and/or the file extension.");
         }
     }
     else {
-        for (int i = 0; i < int(recorders.size()); ++i) {
-            recorders[i]->stop();
-            delete recorders[i];
-        }
-        recorders.clear();
+        recorder->stop();
+
+        std::vector<std::string> files;
+        recorder->getFiles(files);
+
+        delete recorder;
+        recorder = nullptr;
 
         ui->progressBar->setMaximum(1);
         ui->btnRecord->setText("Record");
+
+        showFilesInExplorer(files);
     }
 }
 

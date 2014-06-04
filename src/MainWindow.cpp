@@ -174,6 +174,45 @@ void MainWindow::setDrawSkeletons(bool draw)
     toggleSkeletonsOverlay(dynamic_cast<WidgetOpenGL*>(win->widget()));
 }
 
+void MainWindow::setDrawTrajectory()
+{
+    Ptr<DataStream> stream = getCurrentStream();
+    WidgetSceneView* sceneView = findSubwindowByType<WidgetSceneView>();
+    if (stream != nullptr && sceneView != nullptr) {
+        RecordedStream* rs = dynamic_cast<RecordedStream*>(stream.obj);
+        if (rs != nullptr) {
+            bool ok;
+            QStringList items;
+            items << "(Finish)" << "Hip Center" << "Spine" << "Shoulder Center" << "Head" << "Shoulder Left" << "Elbow Left" << "Wrist Left" << "Hand Left" << "Shoulder Right" << "Elbow Right" << "Wrist Right" << "Hand Right" << "Hip Left" << "Knee Left" << "Ankle Left" << "Foot Left" << "Hip Right" << "Knee Right" << "Ankle Right" << "Foot Right";
+            
+            std::vector<NUI_SKELETON_POSITION_INDEX> joints;
+            
+            while (true) {
+                QString item = QInputDialog::getItem(this, "Select Joints", "Add a joint:", items, 0, false, &ok);
+                if (!ok || item.isEmpty()) break;
+                int i;
+                for (i = 0; i < items.size(); ++i) {
+                    if (items[i] == item) break;
+                }
+                if (i < items.size()) {
+                    if (i == 0) break;
+                    else {
+                        size_t j;
+                        for (j = 0; j < joints.size(); ++j) {
+                            if (joints[j] == i - 1) break;
+                        }
+                        if (j == joints.size()) joints.push_back((NUI_SKELETON_POSITION_INDEX) (i - 1));
+                    }
+                }
+            }
+            
+            SkeletonTrajectory* traj = new SkeletonTrajectory();
+            if (rs->getSkeletonTrajectory(joints, *traj)) sceneView->addTrajectory(traj);
+            else delete traj;
+        }
+    }
+}
+
 void MainWindow::changedSubwindow(QMdiSubWindow* win)
 {
     if (win == nullptr) {
@@ -189,8 +228,56 @@ void MainWindow::changedSubwindow(QMdiSubWindow* win)
             else actionDrawSkeleton->setEnabled(false);
         }
     }
+    updateStreamStatus();
 }
 
+void MainWindow::updateStreamStatus()
+{
+    Ptr<DataStream> stream = getCurrentStream();
+    RecordedStream* rs = dynamic_cast<RecordedStream*>(stream.obj);
+    bool isRecordedStream = (rs != nullptr);
+
+    actionPlayPause->setEnabled(isRecordedStream);
+    actionRestart->setEnabled(isRecordedStream);
+    actionAdvance->setEnabled(isRecordedStream);
+
+    if (isRecordedStream && !rs->isPaused()) {
+        actionPlayPause->setIcon(iconPause);
+        actionPlayPause->setText(QApplication::translate("MainWindow", "Pause", 0));
+    }
+    else {
+        actionPlayPause->setIcon(iconPlay);
+        actionPlayPause->setText(QApplication::translate("MainWindow", "Play", 0));
+    }
+}
+
+void MainWindow::streamPlayPause()
+{
+    RecordedStream* rs = dynamic_cast<RecordedStream*>(getCurrentStream().obj);
+    if (rs != nullptr) {
+        rs->setPaused(!rs->isPaused());
+        updateStreamStatus();
+    }
+}
+
+void MainWindow::streamRestart()
+{
+    RecordedStream* rs = dynamic_cast<RecordedStream*>(getCurrentStream().obj);
+    if (rs != nullptr) {
+        rs->reset();
+        updateStreamStatus();
+    }
+}
+
+void MainWindow::streamAdvance()
+{
+    RecordedStream* rs = dynamic_cast<RecordedStream*>(getCurrentStream().obj);
+    if (rs != nullptr) {
+        if (!rs->isPaused()) rs->setPaused(true);
+        rs->advance();
+        updateStreamStatus();
+    }
+}
 
 int MainWindow::findStreamIndex(const Ptr<DataStream>& stream)
 {
@@ -229,7 +316,10 @@ int MainWindow::addStream(const Ptr<DataStream>& stream)
 
     int idx = -1;
     for (int i = 0; i < int(streams.size()); ++i) {
-        if (streams[i] == stream) return i;
+        if (streams[i] == stream) { // Already present
+            openStreamWindows(i);
+            return i;
+        }
         if (idx == -1 && streams[i] == nullptr) idx = i;
     }
 
@@ -240,7 +330,7 @@ int MainWindow::addStream(const Ptr<DataStream>& stream)
     }
 
     #ifdef HAS_BULLET
-        if (stream->hasSkeleton()) {
+        if (idx == 0 && stream->hasSkeleton()) {
             stream.obj->addNewFrameCallback(&world, [this](const ColorFrame* color, const DepthFrame* depth, const SkeletonFrame* skeleton) -> void {
                 this->getWorld().setSkeleton(skeleton);
             });
@@ -249,7 +339,7 @@ int MainWindow::addStream(const Ptr<DataStream>& stream)
 
     openStreamWindows(idx);
 
-    *stream.refcount -= 1; // Convert the reference in "streams" to a weak reference
+    *stream.refcount -= 1; // Convert the reference in the "streams" vector to a weak reference
 
     updateStreamManager();
 
@@ -258,24 +348,33 @@ int MainWindow::addStream(const Ptr<DataStream>& stream)
 
 void MainWindow::openStreamWindows(int i)
 {
-    if (i >= int(streams.size())) return;
+    if (i < 0 || i >= int(streams.size()) || streams[i] == nullptr) return;
 
     Ptr<DataStream> stream = streams[i];
 
     QString name = QString::fromStdString(stream->getName());
 
+    bool atLeastOne = false;
+
     if (stream->hasColor())
     {
-        WidgetColorView* colorView = new WidgetColorView(*this, stream);
-        addSubWindow(colorView, "#" + QString::number(i) + " - " + name + " - Color");
-        toggleSkeletonsOverlay(colorView);
+        WidgetColorView* view = new WidgetColorView(*this, stream);
+        addSubWindow(view, "#" + QString::number(i) + " - " + name + " - Color");
+        toggleSkeletonsOverlay(view);
+        atLeastOne = true;
     }
 
     if (stream->hasDepth())
     {
-        WidgetDepthView* depthView = new WidgetDepthView(*this, stream);
-        addSubWindow(depthView, "#" + QString::number(i) + " - " + name + " - Depth");
-        toggleSkeletonsOverlay(depthView);
+        WidgetDepthView* view = new WidgetDepthView(*this, stream);
+        addSubWindow(view, "#" + QString::number(i) + " - " + name + " - Depth");
+        toggleSkeletonsOverlay(view);
+        atLeastOne = true;
+    }
+
+    if (!atLeastOne) {
+        EmptyView* view = new EmptyView(*this, stream);
+        addSubWindow(view, "#" + QString::number(i) + " - " + name);
     }
 }
 
@@ -298,27 +397,21 @@ void MainWindow::openSceneView()
 
 void MainWindow::openChessboardFinder()
 {
-    SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
-    if (w != nullptr) {
-        Ptr<DataStream> stream = w->getStream();
-        if (stream != nullptr) {
-            QString sizes = QInputDialog::getText(this, "Find Chessboard", "Input the chessboard size:\n(Number of rows/cols - 1)", QLineEdit::Normal, "6x6");
-            auto parts = sizes.trimmed().split(QRegularExpression("\\D"));
-            if (parts.size() == 2) {
-                addStream(new ChessboardDetectorStream(stream, parts[0].toInt(), parts[1].toInt()));
-            }
+    Ptr<DataStream> stream = getCurrentStream();
+    if (stream != nullptr) {
+        QString sizes = QInputDialog::getText(this, "Find Chessboard", "Input the chessboard size:\n(Number of rows/cols - 1)", QLineEdit::Normal, "6x6");
+        auto parts = sizes.trimmed().split(QRegularExpression("\\D"));
+        if (parts.size() == 2) {
+            addStream(new ChessboardDetectorStream(stream, parts[0].toInt(), parts[1].toInt()));
         }
     }
 }
 
 void MainWindow::openDepthCorrector()
 {
-    SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
-    if (w != nullptr) {
-        Ptr<DataStream> stream = w->getStream();
-        if (stream != nullptr && stream->hasDepth()) {
-            addStream(new DepthCorrectorStream(stream));
-        }
+    Ptr<DataStream> stream = getCurrentStream();
+    if (stream != nullptr && stream->hasDepth()) {
+        addStream(new DepthCorrectorStream(stream));
     }
 }
 
@@ -387,11 +480,15 @@ void MainWindow::openRecordedStream()
 
 void MainWindow::setStatusText(QString text)
 {
-    //statusBar->showMessage(text);
+    statusBar->showMessage(text);
+}
+
+void MainWindow::setOperationStatus(QString text)
+{
     statusBarText->setText(text);
 }
 
-void MainWindow::setStatusProgress(int progress, int max)
+void MainWindow::setOperationProgress(int progress, int max)
 {
     statusBarProgress->setMaximum(max);
     statusBarProgress->setValue(progress);
@@ -399,8 +496,8 @@ void MainWindow::setStatusProgress(int progress, int max)
 
 void MainWindow::operationFinished()
 {
-    setStatusText("Finished");
-    setStatusProgress(0, 1);
+    setOperationStatus("Finished");
+    setOperationProgress(0, 1);
     statusBarProgress->setEnabled(false);
 
     Operation* op = currentOperation->getOperation();
@@ -458,11 +555,11 @@ void MainWindow::startOperation(Operation* op, std::function< void() > callback)
     }
 
     statusBarProgress->setEnabled(true);
-    setStatusProgress(0, 0);
-    setStatusText("Executing...");
+    setOperationProgress(0, 0);
+    setOperationStatus("Executing...");
     
-    connect(op, SIGNAL(statusChanged(QString)), this, SLOT(setStatusText(QString)));
-    connect(op, SIGNAL(progressChanged(int, int)), this, SLOT(setStatusProgress(int, int)));
+    connect(op, SIGNAL(statusChanged(QString)), this, SLOT(setOperationStatus(QString)));
+    connect(op, SIGNAL(progressChanged(int, int)), this, SLOT(setOperationProgress(int, int)));
 
     AsyncOperation* asyncOp = new AsyncOperation(op, callback);
     currentOperation = asyncOp;
@@ -483,7 +580,7 @@ void MainWindow::startOperation(Operation* op, std::function< void() > callback)
 
 #else
 
-    void MainWindow::openAugmentedView() { }
+void MainWindow::openAugmentedView() { }
 
 #endif
 
@@ -521,7 +618,12 @@ void MainWindow::startOperation(Operation* op, std::function< void() > callback)
         SHORTCUT(_keys); \
     }
 
-
+#define ACTION_ICON(_text, _slot, _icon) { \
+        action = new QAction(QApplication::translate("MainWindow", (_text), 0), this); \
+        action->setIcon(QIcon(_icon)); \
+        QObject::connect(action, SIGNAL(triggered()), this, SLOT(_slot)); \
+        menu->addAction(action); \
+    }
 
 void MainWindow::setupUi()
 {
@@ -551,6 +653,8 @@ void MainWindow::setupUi()
 
         menu->addSeparator();
 
+        ACTION_SHORTCUT("Show Skeleton Trajectories", setDrawTrajectory(), Qt::Key_F6);
+
         ACTION_2("Draw Skeletons", triggered(bool), setDrawSkeletons(bool));
         SHORTCUT(Qt::Key_F5);
         action->setCheckable(true);
@@ -577,8 +681,8 @@ void MainWindow::setupUi()
 
         menu->addSeparator();
 
+        ACTION_SHORTCUT("Kinect 0", openKinect0(), Qt::CTRL + Qt::Key_0);
         ACTION_SHORTCUT("Kinect 1", openKinect1(), Qt::CTRL + Qt::Key_1);
-        ACTION_SHORTCUT("Kinect 2", openKinect2(), Qt::CTRL + Qt::Key_2);
 
         menu->addSeparator();
 
@@ -604,9 +708,32 @@ void MainWindow::setupUi()
     statusBar->addPermanentWidget(statusBarProgress);
     setStatusBar(statusBar);
 
-    //QToolBar* toolBar = new QToolBar(this);
-    //toolBar->addSeparator();
-    //addToolBar(Qt::TopToolBarArea, toolBar);
+    iconPlay = QIcon(":/control_play_blue.png");
+    iconPause = QIcon(":/control_pause_blue.png");
+
+    QToolBar* toolBar = new QToolBar(this);
+    {
+        QToolBar* menu = toolBar;
+
+        ACTION_ICON("Fixed Image Stream...", openImageStream(), ":/folder_picture.png");
+        ACTION_ICON("Recorded Stream...", openRecordedStream(), ":/folder_camera.png");
+
+        menu->addSeparator();
+
+        ACTION_ICON("Record", openRecorder(), ":/film_save.png");
+
+        menu->addSeparator();
+
+        ACTION_ICON("", streamPlayPause(), "");
+        actionPlayPause = action;
+
+        ACTION_ICON("Advance one frame", streamAdvance(), ":/control_fastforward_blue.png");
+        actionAdvance = action;
+
+        ACTION_ICON("Reset", streamRestart(), ":/control_start_blue.png");
+        actionRestart = action;
+    }
+    addToolBar(Qt::TopToolBarArea, toolBar);
 
     QWidget* centralwidget = new QWidget(this);
     QGridLayout* gridLayout = new QGridLayout(centralwidget);

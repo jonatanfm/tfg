@@ -23,9 +23,9 @@ class RecordedStream : public AsyncStream
         }
 
         // Sets whether this stream is paused or running.
-        void setPaused(bool paused)
+        void setPaused(bool isPaused)
         {
-            paused = true;
+            paused = isPaused;
         }
 
         // Sets this stream to advance frame automatically.
@@ -34,11 +34,30 @@ class RecordedStream : public AsyncStream
             advancing = true;
         }
 
+        
+        // Reads the complete trajectory of the skeleton
+        bool getSkeletonTrajectory(const std::vector<NUI_SKELETON_POSITION_INDEX>& joints, OUT SkeletonTrajectory& trajectory)
+        {
+            assert(hasSkeleton());
+            
+            SkeletonIO reader;
+            if (reader.openFileForReading(skeletonFile.c_str())) {
+                bool ok = reader.readTrajectory(joints, trajectory);
+                reader.close();
+                return ok;
+            }
+            return false;
+        }
 
 
         std::string getName() const override
         {
             return name;
+        }
+
+        bool isPaused() const
+        {
+            return paused;
         }
 
         bool isOpened() const override

@@ -108,6 +108,46 @@ class SkeletonIO
             return fread(&frame, sizeof(SkeletonFrame), 1, file) == 1;
         }
 
+        // Reads the trajectory over time of the given set of joints.
+        bool readTrajectory(const std::vector<NUI_SKELETON_POSITION_INDEX>& joints, OUT SkeletonTrajectory& trajectory)
+        {
+            assert(file != nullptr && !writing);
+            long int originalPos = ftell(file);
+            
+            int n = int(joints.size());
+            trajectory.numFrames = numFrames;
+            trajectory.joints = joints;
+            trajectory.points = new SkeletonTrajectory::Point[n * numFrames];
+            
+            SkeletonFrame* buffer = new SkeletonFrame();
+            NUI_SKELETON_FRAME& f = buffer->frame;
+            
+            fseek(file, sizeof(Header), SEEK_SET);
+            for (unsigned int k = 0; k < numFrames; ++k) {
+                if (fread(buffer, sizeof(SkeletonFrame), 1, file) != 1) {
+                    // ERROR
+                }
+                for (int i = 0; i < NUI_SKELETON_COUNT; ++i) {
+                    if (f.SkeletonData[i].eTrackingState != NUI_SKELETON_NOT_TRACKED) {
+                        for (int j = 0; j < n; ++j) {
+                            SkeletonTrajectory::Point& p = trajectory.getPoint(j, k);
+                            Vector4 v = f.SkeletonData[i].SkeletonPositions[joints[j]];
+                            p.x = v.x;
+                            p.y = v.y;
+                            p.z = v.z;
+                            p.state = f.SkeletonData[i].eSkeletonPositionTrackingState[joints[j]];
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            delete buffer;
+            fseek(file, originalPos, SEEK_SET);
+            return true;
+        }
+        
+        
         // Starts reading the curent file again from the start.
         void reset()
         {
@@ -130,11 +170,16 @@ class SkeletonIO
         // Opens the given file for writing skeleton frame(s). Returns true on success.
         bool openFileForWriting(const char* filename)
         {
+            qDebug() << "Opening " << QString(filename);
             file = fopen(filename, "wb");
             if (file == nullptr) return false;
 
             Header header = { 0 };
-            fwrite(&header, sizeof(header), 1, file);
+            if (fwrite(&header, sizeof(header), 1, file) != 1) {
+                fclose(file);
+                file = nullptr;
+                return false;
+            }
             writing = true;
             return true;
         }

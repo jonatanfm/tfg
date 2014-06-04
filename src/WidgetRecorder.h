@@ -31,11 +31,9 @@ class WidgetRecorder : public QWidget, public SubWindowWidget
         Ui::WidgetRecorder *ui;
 
         MainWindow& mainWindow;
-        
-        bool recording; // Set to true while recording.
-
-        // List of active recorders
-        std::vector<Recorder*> recorders;
+       
+        // Active recorder, not null only if recording
+        Recorder* recorder;
 
         // Refresh the list of streams, called when some changed.
         void updateStreamList();

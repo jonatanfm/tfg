@@ -2,22 +2,69 @@
 
 #include "Utils.h"
 
+
 // Coordinate Spaces: http://msdn.microsoft.com/en-us/library/hh973078.aspx
+
+#ifdef HAS_KINECT_TOOLIKIT
+
+// Class required by interaction stream - Stub
+class InteractionClient : public INuiInteractionClient
+{
+    public:
+
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppv)
+        {
+            return S_OK;
+        }
+
+        ULONG STDMETHODCALLTYPE AddRef()
+        {
+            return 2;
+        }
+
+        ULONG STDMETHODCALLTYPE Release()
+        {
+            return 1;
+        }
+
+        HRESULT STDMETHODCALLTYPE GetInteractionInfoAtLocation(
+            DWORD skeletonTrackingId, NUI_HAND_TYPE handType,
+            FLOAT x, FLOAT y,
+            _Out_ NUI_INTERACTION_INFO *pInteractionInfo)
+        {
+            memset(pInteractionInfo, 0, sizeof(NUI_INTERACTION_INFO));
+            return S_OK;
+        }
+} interactionClient;
+
+#endif
+
 
 KinectStream::KinectStream() :
     sensor(nullptr),
     colorStream(nullptr),
-    depthStream(nullptr)
+    depthStream(nullptr),
+    interactionStream(nullptr),
+    depthTimestamp()
 {
     hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    hInteractionEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 }
 
 KinectStream::~KinectStream()
 {
+    #ifdef HAS_KINECT_TOOLIKIT
+        if (interactionStream != nullptr) {
+            interactionStream->Disable();
+            interactionStream->Release();
+            interactionStream = nullptr;
+        }
+    #endif
+
     if (sensor != nullptr) {
         //if (updater.joinable()) updater.join();
 
-        if (hEvent != nullptr) ResetEvent(hEvent);
+        if (hEvent != nullptr) ResetEvent(hEvent); // Trigger the event to avoid deadlocks
 
         colorStream = nullptr;
         depthStream = nullptr;
@@ -26,6 +73,7 @@ KinectStream::~KinectStream()
         sensor = nullptr;
     }
 
+    if (hInteractionEvent != nullptr) CloseHandle(hInteractionEvent);
     if (hEvent != nullptr) CloseHandle(hEvent);
 }
 
@@ -38,7 +86,7 @@ void KinectStream::stop()
 bool KinectStream::initialize(int sensorIndex)
 {
     if (NuiCreateSensorByIndex(sensorIndex, &sensor) < 0) {
-        fprintf(stderr, "Unable to connect to kinect %d\n", sensorIndex);
+        qDebug("Unable to connect to kinect %d\n", sensorIndex);
         return false;
     }
     return initializeStreams();
@@ -108,6 +156,19 @@ bool KinectStream::initializeStreams()
         return false;
     }
 
+    #ifdef HAS_KINECT_TOOLIKIT
+        if (FAILED(NuiCreateInteractionStream(sensor, &interactionClient, &interactionStream))) {
+            qDebug("Failed NuiCreateInteractionStream!");
+            return false;
+        }
+
+        if (FAILED(interactionStream->Enable(hInteractionEvent))) {
+            qDebug("Failed INuiInteractionStream::Enable!");
+            return false;
+        }
+    #endif
+
+
     //updater = std::thread(runUpdaterWrapper, this);
 
     printf("Connected to kinect!\n");
@@ -160,8 +221,8 @@ void KinectStream::updateDepthBuffer()
         frameTex->LockRect(0, &lockedRect, nullptr, 0);
         if (lockedRect.Pitch != 0) {
             const NUI_DEPTH_IMAGE_PIXEL* frame = reinterpret_cast<const NUI_DEPTH_IMAGE_PIXEL*>(lockedRect.pBits);
-
             memcpy(depthBuffer.pixels, frame, DepthFrame::BYTES);
+            depthTimestamp = imageFrame.liTimeStamp;
         }
         frameTex->UnlockRect(0);
         frameTex->Release();
@@ -181,6 +242,23 @@ void KinectStream::updateSkeleton()
     skeletonBuffer.frame = frame;
 }
 
+void KinectStream::updateInteractions()
+{
+    #ifdef HAS_KINECT_TOOLKIT
+        Vector4 reading = { 0 };
+        sensor->NuiAccelerometerGetCurrentReading(&reading);
+
+        interactionStream->ProcessDepth(DepthFrame::BYTES, (BYTE*) depthBuffer.pixels, depthTimestamp);
+        interactionStream->ProcessSkeleton(NUI_SKELETON_COUNT, skeletonBuffer.frame.SkeletonData, &reading, skeletonBuffer.frame.liTimeStamp);
+    
+        NUI_INTERACTION_FRAME frame;
+        if (S_OK == interactionStream->GetNextFrame(0, &frame)) {
+
+            qDebug("INTERACTION %d %d", frame.UserInfos->HandPointerInfos->HandEventType, frame.UserInfos->HandPointerInfos->HandType);
+        }
+    #endif
+}
+
 void KinectStream::stream()
 {
     qDebug("[KinectStream] Thread started");
@@ -193,7 +271,11 @@ void KinectStream::stream()
         updateColorBuffer();
         updateDepthBuffer();
         updateSkeleton();
-        
+
+        #ifdef HAS_KINECT_TOOLIKIT
+            updateInteractions();
+        #endif
+
         pushFrame(&colorBuffer, &depthBuffer, &skeletonBuffer);
     }
 

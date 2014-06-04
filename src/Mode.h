@@ -11,7 +11,7 @@ class MainWindow;
 // Handles what happens when a widget receives events.
 class Mode
 {
-    private:
+    protected:
         MainWindow* window;
 
     public:

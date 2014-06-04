@@ -1,0 +1,11 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>film_save.png</file>
+    <file>folder_camera.png</file>
+    <file>folder_picture.png</file>
+    <file>control_fastforward_blue.png</file>
+    <file>control_pause_blue.png</file>
+    <file>control_play_blue.png</file>
+    <file>control_start_blue.png</file>
+</qresource>
+</RCC>

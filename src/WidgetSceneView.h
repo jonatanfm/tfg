@@ -33,6 +33,10 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
         // Quadric object for rendering shapes.
         GLUquadric* quadric;
+        
+        
+        // Trajectories to draw.
+        std::vector<SkeletonTrajectory*> trajectories;
 
 
         // Current scene camera position and orientation
@@ -47,6 +51,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
         {
             char w, a, s, d;
             char up, down, left, right;
+            char shift;
         } keys;
 
         // Last mouse registered position
@@ -99,6 +104,8 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
             if (streams.size() > 0) streams[0]->removeNewFrameCallback(this);
 
             makeCurrent();
+            
+            clearTrajectories();
 
             gluDeleteQuadric(quadric);
         }
@@ -168,6 +175,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
             }
             #endif
 
+            // Draw 3D skeleton (if valid)
             skeletonMutex.lock();
             if (skeleton.isValid()) {
                 glPushMatrix();
@@ -175,10 +183,25 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
                 glPopMatrix();
             }
             skeletonMutex.unlock();
+            
+            // Draw skeleton trajectories (if any)
+            for (size_t i = 0; i < trajectories.size(); ++i) {
+                drawTrajectory(*trajectories[i]);
+            }
 
             return true;
         }
 
+        void addTrajectory(SkeletonTrajectory* traj)
+        {
+            trajectories.push_back(traj);
+        }
+        
+        void clearTrajectories()
+        {
+            for (size_t i = 0; i < trajectories.size(); ++i) delete trajectories[i];
+            trajectories.clear();
+        }
 
     protected:
 
@@ -194,6 +217,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
                 case Qt::Key_Up: keys.up = x; break;
                 case Qt::Key_Right: keys.right = x; break;
                 case Qt::Key_Down: keys.down = x; break;
+                case Qt::Key_Shift: keys.shift = x; break;
             }
         }
 
@@ -236,7 +260,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
         void onTick() override
         {
-            const float POS_STEP = 0.2f;
+            const float POS_STEP = keys.shift ? 0.01f : 0.2f;
             const float ANGLE_STEP = 2.0f;
 
             int dx = keys.d - keys.a;
@@ -312,6 +336,41 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
                 gluDisk(quadric, 0.0f, 0.1f, 12, 1);
             }
             glPopMatrix();
+        }
+        
+        void drawTrajectory(const SkeletonTrajectory& traj)
+        {
+            int n = int(traj.joints.size());
+            for (int j = 0; j < n; ++j) {
+                bool lines = true;
+                glBegin(GL_LINE_STRIP);
+                for (int k = 0; k < traj.numFrames; ++k) {
+                    const SkeletonTrajectory::Point& p = traj.getPoint(j, k);
+                    float r = 0.0f, g = 0.0f, b = k / float(traj.numFrames);
+                    switch (p.state) {
+                        case NUI_SKELETON_POSITION_TRACKED:
+                        case NUI_SKELETON_POSITION_INFERRED:
+                            r = (p.state == NUI_SKELETON_POSITION_INFERRED) ? 1.0f : 0.0f;
+                            if (!lines && k < traj.numFrames - 1 && traj.getPoint(j, k + 1).state != NUI_SKELETON_POSITION_NOT_TRACKED) {
+                                lines = true;
+                                glEnd();
+                                glBegin(GL_LINE_STRIP);
+                            }
+                            break;
+                        default:
+                            r = 1.0f;
+                            b = 0.0f;
+                            if (lines) {
+                                lines = false;
+                                glEnd();
+                                glBegin(GL_POINTS);
+                            }
+                    }
+                    glColor3f(r, g, b);
+                    glVertex3f(-p.x, p.y, p.z);
+                }
+                glEnd();
+            }
         }
 
 

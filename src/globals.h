@@ -37,6 +37,7 @@
 //
 
 #include <Windows.h>
+#include <Shlobj.h>
 
 #undef min
 #undef max
@@ -48,6 +49,10 @@
 
 #include <NuiApi.h>
 
+#ifdef HAS_KINECT_TOOLKIT
+    #include <KinectInteraction.h>
+#endif
+
 
 //
 // OpenCV
@@ -58,17 +63,6 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#ifdef _DEBUG
-    #pragma comment(lib, "opencv_core249d")
-    #pragma comment(lib, "opencv_imgproc249d")
-    #pragma comment(lib, "opencv_calib3d249d")
-    #pragma comment(lib, "opencv_highgui249d")
-#else
-    #pragma comment(lib, "opencv_core249")
-    #pragma comment(lib, "opencv_imgproc249")
-    #pragma comment(lib, "opencv_calib3d249")
-    #pragma comment(lib, "opencv_highgui249")
-#endif
 
 
 //
@@ -81,9 +75,6 @@
 //
 // OpenGL
 //
-
-#pragma comment(lib, "opengl32")
-#pragma comment(lib, "glu32")
 
 #include <GL/gl.h>
 #include <GL/glu.h>

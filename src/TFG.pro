@@ -1,10 +1,11 @@
 QT += core gui opengl
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+message(".: Generating :.")
 
 TEMPLATE = app
 
-
+# Set debug/Release folders
 CONFIG(debug, debug|release) {
     TARGET = TFG_debug
     DESTDIR = ../bin
@@ -18,12 +19,32 @@ CONFIG(debug, debug|release) {
 #INCLUDEPATH += ../include
 
 
+# Kinect SDK
 INCLUDEPATH += $$(KINECTSDK10_DIR)/inc
-LIBS += -L$$(KINECTSDK10_DIR)/lib/x86
+LIBS += -L$$(KINECTSDK10_DIR)/lib/x86 -lkinect10
+
+# Kinect Developer Toolkit
+KINECT_TOOLKIT_DIR = "$$(KINECTSDK10_DIR)/../Developer Toolkit v1.8.0"
+exists($$KINECT_TOOLKIT_DIR) {
+    message("Kinect Toolkit found")
+    INCLUDEPATH += "$$(KINECT_TOOLKIT_DIR)/inc"
+    LIBS += -L"$$(KINECT_TOOLKIT_DIR)/lib/x86" -lKinectInteraction180_32
+    DEFINES += HAS_KINECT_TOOLKIT
+}
 
 
+# OpenGL
+LIBS += -lopengl32 -lglu32
+
+
+# OpenCV
 INCLUDEPATH += $$(OPENCV_PATH)/include
 LIBS += -L$$(OPENCV_PATH)/x86/vc10/lib
+CONFIG(debug, debug|release) {
+    LIBS += -lopencv_core249d -lopencv_imgproc249d -lopencv_calib3d249d -lopencv_highgui249d
+} else {
+    LIBS += -lopencv_core249 -lopencv_imgproc249 -lopencv_calib3d249 -lopencv_highgui249
+}
 
 
 SOURCES += \
@@ -75,6 +96,7 @@ exists(../config.pro) {
     include(../config.pro)
 }
 
+# Bullet Physics Library
 !isEmpty(WITH_BULLET) {
     message("Configured with Bullet")
 
@@ -82,20 +104,23 @@ exists(../config.pro) {
         otger/World.cpp \
         otger/WidgetAugmentedView.cpp
         
-#        otger/GLDebugDrawer.cpp
-        
     HEADERS += \
         otger/World.h \
         otger/WidgetAugmentedView.h
-        
-#        otger/GLDebugDrawer.h
     
     INCLUDEPATH += $$(BULLET_DIR)/src
     LIBS += -L$$(BULLET_DIR)/lib
+        
+    CONFIG(debug, debug|release) {
+        LIBS += -llinearmath_vs2010_debug -lbulletcollision_vs2010_debug -lbulletdynamics_vs2010_debug
+    } else {
+        LIBS += -llinearmath_vs2010 -lbulletcollision_vs2010 -lbulletdynamics_vs2010
+    }
     
     DEFINES += HAS_BULLET
 }
 
+# LibXL (Excel .xls exporting)
 !isEmpty(WITH_LIBXL) {
     message("Configured with LIBXL")
 
@@ -105,9 +130,14 @@ exists(../config.pro) {
     DEFINES += HAS_LIBXL
 }
 
+
+# Set build directories
 MOC_DIR = $$OBJECTS_DIR
 RCC_DIR = $$OBJECTS_DIR
 UI_DIR = $$OBJECTS_DIR
 
-win32:RC_FILE = resource.rc
+RESOURCES = ../res/resources.qrc
+
+# Windows specific
+win32:RC_FILE = ../res/resource.rc
 win32:QMAKE_CXXFLAGS += -D_CRT_SECURE_NO_WARNINGS

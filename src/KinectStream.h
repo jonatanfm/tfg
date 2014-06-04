@@ -8,11 +8,12 @@
 #include "globals.h"
 #include "RenderUtils.h"
 
-#pragma comment(lib, "kinect10")
 #include <NuiApi.h>
 #include <NuiSensor.h>
 #include <NuiSkeleton.h>
 #include <NuiImageCamera.h>
+
+struct INuiInteractionStream;
 
 // Stream that reads and provides data from a single Kinect device
 class KinectStream : public AsyncStream
@@ -65,10 +66,13 @@ class KinectStream : public AsyncStream
     private:
         INuiSensor* sensor; // The internal sensor object
 
-        HANDLE hEvent; // Event signaled when a new frame is available
+        HANDLE hEvent; // Event signaled when new color/depth frames are available
+        HANDLE hInteractionEvent; // Event signaled when new interaction frame is available
 
         HANDLE colorStream; // Handle to the internal color stream
         HANDLE depthStream; // Handle to the internal depth stream
+
+        INuiInteractionStream* interactionStream;
 
         INuiCoordinateMapper* mapper; // The device coordinates mapper (for mapping color/depth/skeleton frames)
 
@@ -78,6 +82,8 @@ class KinectStream : public AsyncStream
         DepthFrame depthBuffer;
         SkeletonFrame skeletonBuffer;
 
+        // Last depth frame timestamp
+        LARGE_INTEGER depthTimestamp;
 
         // Initialize the internal Kinect streams.
         bool initializeStreams();
@@ -86,6 +92,8 @@ class KinectStream : public AsyncStream
         void updateColorBuffer(); // Read a single color frame from the device.
         void updateDepthBuffer(); // Read a single depth frame from the device.
         void updateSkeleton(); // Read a single skeleton frame from the device.
+        
+        void updateInteractions(); // Feed data to the interaction stream, and read new interactions
 
         void stream() override;
 

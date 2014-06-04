@@ -6,17 +6,6 @@
 
 //#include "GLDebugDrawer.h"
 
-#ifdef _DEBUG
-    #pragma comment(lib, "linearmath_vs2010_debug")
-    #pragma comment(lib, "bulletcollision_vs2010_debug")
-    #pragma comment(lib, "bulletdynamics_vs2010_debug")
-#else
-    #pragma comment(lib, "linearmath_vs2010")
-    #pragma comment(lib, "bulletcollision_vs2010")
-    #pragma comment(lib, "bulletdynamics_vs2010")
-#endif
-
-
 bool ticksPerSecondInitialized = false;
 static LARGE_INTEGER ticksPerSecond;
 

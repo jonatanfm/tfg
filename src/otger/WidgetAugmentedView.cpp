@@ -35,7 +35,7 @@ void WidgetAugmentedView::initialize()
 {
     initializeGLFunctions();
 
-    qDebug() << "OpenGL version: " << QString((const char*) glGetString(GL_VERSION));
+    qDebug() << "OpenGL version:" << QString((const char*) glGetString(GL_VERSION));
 
     glCheckError();
 
@@ -62,6 +62,8 @@ void WidgetAugmentedView::initialize()
     shader2D.bind();
     shader2D.setUniformValue("Color", 0);
     shader2D.setUniformValue("Depth", 1);
+    //shader2D.setUniformValue("zNear", static_cast<GLfloat>(zNear));
+    //shader2D.setUniformValue("zFar", static_cast<GLfloat>(zFar));
     shader2D.release();
 
     glCheckError();

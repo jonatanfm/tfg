@@ -1,5 +1,6 @@
 //
-// Defines structs for holding the data of Color, Depth and Skeleton frames.
+// Defines structs for holding the data of Color, Depth and Skeleton frames,
+// as well as other related data.
 //
 #ifndef DATA_H
 #define DATA_H
@@ -173,6 +174,50 @@ struct SkeletonFrame
     {
         memset(&frame, 0, sizeof(frame));
     }
+};
+
+
+// Stores the trajectory of one or more skeleton joints over time.
+struct SkeletonTrajectory
+{
+    private:
+        SkeletonTrajectory(const SkeletonTrajectory&);
+        SkeletonTrajectory& operator=(const SkeletonTrajectory&);
+    public:
+    
+        struct Point
+        {
+            union
+            {
+                struct { float x, y, z; };
+                float position[3];
+            };
+            NUI_SKELETON_POSITION_TRACKING_STATE state;
+        };
+
+        int numFrames;
+        std::vector<NUI_SKELETON_POSITION_INDEX> joints;
+        
+        Point* points;
+        
+        
+        SkeletonTrajectory() : numFrames(0), points(nullptr) { }
+        
+        ~SkeletonTrajectory()
+        {
+            if (points != nullptr) delete[] points;
+        }
+        
+        inline Point& getPoint(int jointIndex, int frame)
+        {
+            return points[jointIndex*joints.size() + frame];
+        }
+        
+        inline const Point& getPoint(int jointIndex, int frame) const
+        {
+            return points[jointIndex*joints.size() + frame];
+        }
+        
 };
 
 

@@ -116,6 +116,10 @@ class MainWindow : public QMainWindow
 
         QAction* actionDrawSkeleton;
 
+        QAction *actionPlayPause, *actionRestart, *actionAdvance;
+
+        QIcon iconPlay, iconPause;
+
         QMdiArea* mdiArea; // The area containing the subwindows
 
         QMenu* menuModes;
@@ -142,10 +146,24 @@ class MainWindow : public QMainWindow
         // Toggles between showing or not the skeletons in the given widget (if can display skeletons).
         void toggleSkeletonsOverlay(WidgetOpenGL* widget);
 
+        // Called when a stream has been paused, unpaused, resetted, etc.
+        void updateStreamStatus();
+
 
         // Returns the index of the given stream.
         int findStreamIndex(const Ptr<DataStream>& stream);
 
+        //
+        // UTILITY FUNCTIONS
+        //
+        
+        // Returns the current selected subwindow stream, or null if no subwindow or has nostream
+        inline Ptr<DataStream> getCurrentStream()
+        {
+            SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
+            return (w != nullptr) ? w->getStream() : nullptr;
+        }
+        
         // Finds the (first) subwindow containing the templated type of widget.
         template<class T>
         inline T* findSubwindowByType()
@@ -181,8 +199,8 @@ class MainWindow : public QMainWindow
 
         void exit();
 
-        void openKinect1() { openKinect(0); }
-        void openKinect2() { openKinect(1); }
+        void openKinect0() { openKinect(0); }
+        void openKinect1() { openKinect(1); }
 
         void openRecorder();
 
@@ -203,16 +221,23 @@ class MainWindow : public QMainWindow
         void changedSubwindow(QMdiSubWindow* win);
 
         void setDrawSkeletons(bool);
-
+        void setDrawTrajectory();
+        
         void setModeNone();
         void setModeMeasure();
 
         void setStatusText(QString);
-        void setStatusProgress(int, int);
+
+        void setOperationStatus(QString);
+        void setOperationProgress(int, int);
         void operationFinished();
 
         void skeletonTraking();
         void skeletonWorking();
+
+        void streamPlayPause();
+        void streamRestart();
+        void streamAdvance();
 
 };
 
