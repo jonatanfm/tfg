@@ -100,7 +100,11 @@ void RecordedStream::stream()
 
         skeleton = nullptr;
         if (skeletonReader.isOpen() && skeletonReader.readFrame(recordedSkeletonFrame)) {
+
+			
             skeleton = &recordedSkeletonFrame;
+			NuiTransformSmooth(&skeleton->frame, nullptr);
+
         }
 
         pushFrame(color, depth, skeleton);

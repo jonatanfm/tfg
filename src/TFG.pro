@@ -59,7 +59,8 @@ SOURCES += \
     WidgetOpenGL.cpp \
     WidgetRecorder.cpp \
     otger/DepthCorrector.cpp \
-    jonatan/SkeletonStudy.cpp
+	jonatan/CaptureSkeleton.cpp \
+	jonatan/SkeletonStudy.cpp
 
 HEADERS += \
     globals.h \
@@ -88,7 +89,8 @@ HEADERS += \
     WidgetRecorder.h \
     WidgetStreamManager.h \
     otger/DepthCorrector.h \
-    jonatan/SkeletonStudy.h
+	jonatan/CaptureSkeleton.h \
+	jonatan/SkeletonStudy.h
 
 FORMS += WidgetRecorder.ui
 

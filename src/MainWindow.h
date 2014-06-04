@@ -232,12 +232,13 @@ class MainWindow : public QMainWindow
         void setOperationProgress(int, int);
         void operationFinished();
 
-        void skeletonTraking();
-        void skeletonWorking();
+		void skeletonTraking();
+		void skeletonWorking();
 
         void streamPlayPause();
         void streamRestart();
         void streamAdvance();
+		
 
 };
 

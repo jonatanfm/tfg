@@ -3,11 +3,7 @@
 
 #pragma once
 
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <vector>
-#include <math.h>
+
 #include <stdlib.h>
 
 
@@ -17,7 +13,6 @@
 #include "../AsyncStream.h"
 
 
-#include "../RenderUtils.h"
 
 
 #ifndef WITH_LIBXL
@@ -44,18 +39,15 @@ class SkeletonStudy : public AsyncStream
 private:
 
     Ptr<DataStream> base;
+	int type;
 
 	vector<const char*> skelName;
 	vector<float> aver;
 	vector<float> desv;
-	vector<float> suma;
-	vector<float> sumaCuadrada;
-	vector<float> maxim;
-	vector<float> minim;
 	float tot;
 	
 	AsyncStream* s;
-	#ifndef WITH_LIBXL
+	#ifdef HAS_LIBXL
 
 				Book* booktmp;
 				Sheet* sheettmp;
@@ -66,22 +58,13 @@ private:
 public:
 
 		SkeletonStudy(Ptr<DataStream> baseStream) :
-            base(baseStream)
+            base(baseStream),
+			type(0)
         {
 			
-			float a=0;
-			float b=100000;
-			for(int i=0;i<19;i++){
-				aver.push_back(a);
-				desv.push_back(a);
-				suma.push_back(a);
-				sumaCuadrada.push_back(a);
-				maxim.push_back(a);
-				minim.push_back(b);
-			}
 			tot=0;
 			createSkeletonNames();
-			 s = dynamic_cast<AsyncStream*>(base.obj);
+			s = dynamic_cast<AsyncStream*>(base.obj);
 
             colorFrame = new ColorFrame();
 
@@ -92,7 +75,7 @@ public:
 
 		std::string getName() const override
         {
-            return "Traking Skeleton and saving data to file";
+            return "Traking Skeleton in time";
         }
 
 		bool isOpened() const override
@@ -108,14 +91,13 @@ public:
             ColorFrame* buffer = new ColorFrame();
 			SkeletonFrame* skel = new SkeletonFrame();
 			
-			#ifndef WITH_LIBXL
+			#ifdef HAS_LIBXL
 
 				booktmp = xlCreateBook();
 				sheettmp = booktmp->addSheet("Kinect Skeleton in time");
 				Format* centerFormat = booktmp->addFormat();
 				centerFormat->setAlignH(ALIGNH_CENTER);
-				sheettmp->writeStr(2, 0, "Left arm");
-				sheettmp->writeStr(2, 1, "Right arm");
+				
 				for(int i=0; i<19;i++){
 					sheettmp->setCol(2, 2+i, 20);
 					sheettmp->writeStr(2, 2+i, skelName[i],centerFormat);
@@ -131,12 +113,11 @@ public:
 
                 base->waitForFrame(buffer, nullptr, skel);
 
-				
-				if ( base->getSkeletonFrame(skeleton)) {
-					trackSkeleton(skeleton.frame);
+				if (type==0){
+					if ( base->getSkeletonFrame(skeleton)) 
+							trackSkeleton(skeleton.frame);
 				}
-
-				
+						
 				
                 pushFrame(buffer, nullptr, skel);
             }
@@ -147,58 +128,18 @@ public:
 			QString timestamp = QString::number(QDateTime::currentMSecsSinceEpoch() / 1000);
 			QString filename;
 			filename = timestamp;
-			filename += "_results.xls";
-			QString filename2;
-			filename2 = timestamp;
-			filename2 += "_time.xls";
+			filename += "_time.xls";
 
 			QByteArray ba = filename.toLocal8Bit();
-			QByteArray ba2 = filename2.toLocal8Bit();
 			const char *filen = ba.data();
-			const char *filen2 = ba2.data();
 
-			#ifndef WITH_LIBXL
-				booktmp->save(filen2);       
+			#ifdef HAS_LIBXL
+				booktmp->save(filen);       
 				booktmp->release();
 				
 
 			#endif
 
-			#ifndef WITH_LIBXL
-
-				Book* book = xlCreateBook();
-				Sheet* sheet = book->addSheet("Kinect Skeleton Values");
-			
-				if(sheet)
-				{
-					
-					Format* centerFormat = book->addFormat();
-					centerFormat->setAlignH(ALIGNH_CENTER);
-
-					sheet->setCol(1, 1, 20);
-
-					sheet->writeStr(3, 1, "Average",centerFormat);
-					sheet->writeStr(4, 1, "Deviation",centerFormat);
-					sheet->writeStr(5, 1, "Max",centerFormat);
-					sheet->writeStr(6, 1, "Min",centerFormat);
-					for(int i=0; i<19;i++){
-						
-						sheet->setCol(2, 2+i, 20);
-
-						sheet->writeStr(2, 2+i, skelName[i],centerFormat);
-						sheet->writeNum(3, 2+i, aver[i],centerFormat);
-						sheet->writeNum(4, 2+i, desv[i],centerFormat);
-						sheet->writeNum(5, 2+i, maxim[i],centerFormat);
-						sheet->writeNum(6, 2+i, minim[i],centerFormat);
-					}
-
-					
-				}
-				
-				book->save(filen);       
-				book->release();
-
-			#endif
 			
         }
 
@@ -206,11 +147,6 @@ public:
 
 		void saveBoneLength(const Vector4& skel1,const Vector4& skel2,int pos);
 
-		float getAngle(const Vector4& skel1,const Vector4& skel2,const Vector4& skel3);
-
-		void changeState() {
-			stopping = true;
-		}
 
 		void createSkeletonNames(){
 

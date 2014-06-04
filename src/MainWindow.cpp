@@ -17,8 +17,15 @@
 
 #include "otger/DepthCorrector.h"
 
+#include "jonatan/CaptureSkeleton.h"
 #include "jonatan/SkeletonStudy.h"
 
+#ifdef HAS_LIBXL
+
+#include "libxl.h"
+using namespace libxl;
+
+#endif
 
 static MainWindow* instance = nullptr;
 
@@ -529,8 +536,13 @@ void MainWindow::skeletonTraking()
     if (w != nullptr) {
         Ptr<DataStream> stream = w->getStream();
         if (stream != nullptr) {
+			double d = QInputDialog::getDouble(this, tr("Enter Radius Bone Length"),
+                                        tr("Enter Radius Bone Length in cms:\n(with 0 value this info will be ignored)"), 0, 0, 1000, 2);
+			double d2 = QInputDialog::getDouble(this, tr("Enter Tibia Bone Length"),
+                                        tr("Enter Tibia Bone Length in cms:\n(with 0 value this info will be ignored)"), 0, 0, 1000, 2);
             
-             addStream(new SkeletonStudy(stream));
+
+            addStream(new CaptureSkeleton(stream, (float)d, (float)d2));
             
         }
     }
@@ -538,13 +550,29 @@ void MainWindow::skeletonTraking()
 
 void MainWindow::skeletonWorking()
 {
-    SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget()); 
-    if (w != nullptr) { 
-        SkeletonStudy* stream = dynamic_cast<SkeletonStudy*>(w->getStream().obj);
-        if (stream != nullptr) { 
-            stream->changeState();
-        } 
-    }
+	int type = QInputDialog::getInt(this, tr("Enter mode to improve skeleton:"),
+                                        tr("Enter mode to improve skeleton:\nWithout improvement: 0\nWith length check: 1\nWith recover losed data: 2"), 0, 0, 5);
+	if ( type == 0){
+			SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
+			if (w != nullptr) {
+				Ptr<DataStream> stream = w->getStream();
+				if (stream != nullptr) {
+            
+					 addStream(new SkeletonStudy(stream));
+            
+				}
+			}
+	}
+		
+	/*
+	QFileDialog dialog(this);
+    dialog.setAcceptMode(QFileDialog::AcceptOpen);
+    dialog.setFileMode(QFileDialog::ExistingFiles);
+    dialog.setNameFilter("Skeleton traked data (*.xls *.xlxs)");
+	if (dialog.exec()) {
+        qDebug() << "aa" <<dialog.selectedUrls().at(0)<<endl;
+
+	}}*/
 }
 
 void MainWindow::startOperation(Operation* op, std::function< void() > callback)
@@ -668,9 +696,9 @@ void MainWindow::setupUi()
 
         ACTION("Correct depth", openDepthCorrector());
 
-        ACTION("Track Skeleton Info", skeletonTraking());
+		ACTION("Track Skeleton Lengths", skeletonTraking());
 
-        ACTION("Change Skeleton Info", skeletonWorking());
+		ACTION("Skeleton Study", skeletonWorking());
 
         ACTION_SHORTCUT("Record", openRecorder(), Qt::Key_F12);
     }

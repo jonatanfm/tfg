@@ -1,7 +1,6 @@
+#include "CaptureSkeleton.h"
 
-#include "SkeletonStudy.h"
-
-void SkeletonStudy::trackSkeleton(const NUI_SKELETON_FRAME& frame){
+void CaptureSkeleton::trackSkeleton(const NUI_SKELETON_FRAME& frame){
 
 	for (int i = 0; i < NUI_SKELETON_COUNT; ++i) {
         NUI_SKELETON_TRACKING_STATE state = frame.SkeletonData[i].eTrackingState;
@@ -27,26 +26,52 @@ void SkeletonStudy::trackSkeleton(const NUI_SKELETON_FRAME& frame){
             saveBoneLength(frame.SkeletonData[i].SkeletonPositions[16],frame.SkeletonData[i].SkeletonPositions[17],16);
             saveBoneLength(frame.SkeletonData[i].SkeletonPositions[17],frame.SkeletonData[i].SkeletonPositions[18],17);
             saveBoneLength(frame.SkeletonData[i].SkeletonPositions[18],frame.SkeletonData[i].SkeletonPositions[19],18);
+			
+			//float a=getAngle(frame.SkeletonData[i].SkeletonPositions[5],frame.SkeletonData[i].SkeletonPositions[4],frame.SkeletonData[i].SkeletonPositions[6]);			
+			//float b=getAngle(frame.SkeletonData[i].SkeletonPositions[9],frame.SkeletonData[i].SkeletonPositions[8],frame.SkeletonData[i].SkeletonPositions[10]);
 		}
         else if (NUI_SKELETON_POSITION_ONLY == state) {
 
         }
     }
 
-	#ifdef HAS_LIBXL
-		sheettmp->writeNum(tot+2, 2, tot);
-	#endif
-	
 }
 
-void SkeletonStudy::saveBoneLength(const Vector4& skel1,const Vector4& skel2,int pos){
+void CaptureSkeleton::saveBoneLength(const Vector4& skel1,const Vector4& skel2,int pos){
 
-	Point tmp = Point(skel2.x-skel1.x,skel2.y-skel1.y,skel2.z-skel1.z);
+	Joint tmp = Joint(skel2.x-skel1.x,skel2.y-skel1.y,skel2.z-skel1.z);
 
 	float res = abs(sqrt((tmp.x*tmp.x) + (tmp.y*tmp.y) +(tmp.z*tmp.z)));
 
-		
-	#ifdef HAS_LIBXL
-		sheettmp->writeNum(2+tot, 3+pos, res);
-	#endif
+	suma[pos]=suma[pos]+res;
+	
+
+    if(res>maxim[pos]) maxim[pos]=res;
+    if(res<minim[pos]) minim[pos]=res;
+	float tmp2;
+
+	tmp2=aver[pos];
+	
+    aver[pos]=suma[pos]/tot;
+
+	sumaCuadrada[pos]=sumaCuadrada[pos]+(res*res);
+	
+	
+}
+
+float CaptureSkeleton::getAngle(const Vector4& skel1,const Vector4& skel2,const Vector4& skel3){
+
+	Joint skel12 = Joint(skel2.x-skel1.x,skel2.y-skel1.y,skel2.z-skel1.z);
+	Joint skel13 = Joint(skel3.x-skel1.x,skel3.y-skel1.y,skel3.z-skel1.z);
+
+	float topEquation, bottomEquation;
+
+	topEquation = (skel12.x*skel13.x)+(skel12.y*skel13.y)+(skel12.z*skel13.z);
+	bottomEquation = sqrt( (skel12.x*skel12.x)+(skel12.y*skel12.y)+(skel12.z*skel12.z) )*
+					 sqrt( (skel13.x*skel13.x)+(skel13.y*skel13.y)+(skel13.z*skel13.z) );
+
+
+	float result = acos (topEquation/bottomEquation) * 180.0 / PI;
+
+	return result;
 }
