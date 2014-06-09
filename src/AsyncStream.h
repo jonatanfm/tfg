@@ -12,6 +12,7 @@
 
 #include "DataStream.h"
 
+
 // Stream which asynchronously runs a thread to read, process and write frames
 class AsyncStream : private QThread, public DataStream
 {

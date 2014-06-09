@@ -192,6 +192,9 @@ class SkeletonIO
             ++numFrames;
         }
 
+		bool hasFinished() const {
+			return currentFrame >=numFrames;
+		}
 };
 
 #endif
