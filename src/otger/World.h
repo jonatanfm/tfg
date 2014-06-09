@@ -5,7 +5,15 @@
 
 #include "../globals.h"
 
+#include "Bullet.h"
+
 #include "../Data.h"
+
+#include "../RenderUtils.h"
+
+#include "KinematicMotionState.h"
+
+#include "Object.h"
 
 class btBroadphaseInterface;
 class btDefaultCollisionConfiguration;
@@ -22,25 +30,6 @@ class Skeleton;
 // as well as users and other real scene information.
 class World : private QThread
 {
-    public:
-
-        // Base class for all world objects
-        class Object
-        {
-            public:
-                virtual ~Object() { }
-
-                // Render for projecting into 2D
-                virtual void render() = 0;
-
-                // Render for debugging into a 3D scene
-                virtual void renderDebug()
-                {
-                    render();
-                }
-        };
-
-
     private:
 
         // FPS of the simulation
@@ -100,10 +89,10 @@ class World : private QThread
         ~World();
         
         // Renders the world projected to 2D
-        void render();
+        void render(TextureManager& textures);
 
         // Renders the world for debugging in a 3D scene
-        void renderDebug();
+        void render3D(TextureManager& textures);
 
         // Runs a single iteration of the simulation
         void runIteration();
@@ -112,10 +101,14 @@ class World : private QThread
         void setSkeleton(const SkeletonFrame* skeleton);
 
         // Get a list of all world objects
-        std::vector<Object*>& getObjects()
+        /*std::vector<Object*>& getObjects()
         {
             return objects;
-        }
+        }*/
+
+        void addObject(Object* object);
+
+        void clearObjects();
 
 };
 

@@ -97,7 +97,7 @@
                 return false;
             }
             
-            bool recordSkeleton(const QString& file)
+            bool recordSkeleton(const QString& file, bool smoothed)
             {
                 QString f = file;
                 //int i = f.lastIndexOf('.');
@@ -105,6 +105,7 @@
                 skeletonFile = (f + ".skel").toStdString();
 
                 if (skeletonWriter.openFileForWriting(skeletonFile.c_str())) {
+                    skeletonWriter.setSmoothed(smoothed);
                     skeletonFrame = new SkeletonFrame();
                     return true;
                 }
@@ -352,7 +353,7 @@ void WidgetRecorder::record()
                 }
                 if (recordTargets[i].skeleton && ok) {
                     QString file = filename;
-                    ok = ok && rec->recordSkeleton(file.replace("<TYPE>", "skeleton"));
+                    ok = ok && rec->recordSkeleton(file.replace("<TYPE>", "skeleton"), recordTargets[i].stream->getSkeletonSmoothing());
                 }
                 
                 newRecorder->add(rec);
@@ -451,6 +452,7 @@ void WidgetRecorder::captureSkeletonFrame(Ptr<DataStream> stream, QString filena
 
     SkeletonIO writer;
     if (!writer.openFileForWriting((filename + ".skel").toStdString().c_str())) return;
+    writer.setSmoothed(stream->getSkeletonSmoothing());
     writer.writeFrame(frame);
     writer.close();
 }

@@ -7,14 +7,30 @@
 
 #include "../AsyncStream.h"
 
+
+class DepthCorrector
+{
+    private:
+        DepthCorrector();
+
+        static const int MIN_DEPTH = DepthFrame::MIN_DEPTH;
+        static const int MAX_DEPTH = DepthFrame::MAX_DEPTH;
+
+    public:
+        // Implementations of different methods
+
+        static void correctDepthFrame_Naive(const DepthFrame& source, DepthFrame& target);
+        static void correctDepthFrame_Memory(const DepthFrame& source, DepthFrame& target);
+        static void correctDepthFrame_Rings(const DepthFrame& source, DepthFrame& target);
+
+};
+
+
 // Stream that attempts to correct depth maps noise and shows the result in "real time".
 class DepthCorrectorStream : public AsyncStream
 {
     private:
         Ptr<DataStream> base; // The depth frame source stream.
-
-        static const int MIN_DEPTH = DepthFrame::MIN_DEPTH;
-        static const int MAX_DEPTH = DepthFrame::MAX_DEPTH;
 
     public:
 
@@ -54,14 +70,6 @@ class DepthCorrectorStream : public AsyncStream
 
         // Correct a single depth frame
         static void correctDepthFrame(const DepthFrame& source, DepthFrame& target);
-
-    private:
-
-        // Implementations
-
-        static void correctDepthFrame_Naive(const DepthFrame& source, DepthFrame& target);
-        static void correctDepthFrame_Memory(const DepthFrame& source, DepthFrame& target);
-        static void correctDepthFrame_Rings(const DepthFrame& source, DepthFrame& target);
 
 };
 

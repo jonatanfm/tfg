@@ -237,7 +237,7 @@ void KinectStream::updateSkeleton()
     HRESULT hr = sensor->NuiSkeletonGetNextFrame(0, &frame);
     if (FAILED(hr)) return; // No data available
 
-    
+    if (skeletonSmoothing) sensor->NuiTransformSmooth(&frame, nullptr);
 
     skeletonBuffer.frame = frame;
 }

@@ -26,7 +26,8 @@ class DataStream : public cv::VideoCapture
 
         DataStream() :
             colorIntrinsics(),
-            depthIntrinsics()
+            depthIntrinsics(),
+            skeletonSmoothing(true)
         {
 
         }
@@ -149,6 +150,19 @@ class DataStream : public cv::VideoCapture
             depthIntrinsics = intrinsics;
         }
 
+        // Get if skeleton smoothing is enabled
+        bool getSkeletonSmoothing() const
+        {
+            return skeletonSmoothing;
+        }
+
+        // Enable/disable skeleton smoothing
+        void setSkeletonSmoothing(bool smooth)
+        {
+            skeletonSmoothing = smooth;
+        }
+
+
 
         // Signals the object to be deleted
         // Returns true if "delete" should be called, or false if it will delete itself
@@ -223,6 +237,8 @@ class DataStream : public cv::VideoCapture
 
         IntrinsicParams colorIntrinsics; // Color camera intrinsics
         IntrinsicParams depthIntrinsics; // Depth camera intrinsics
+
+        volatile bool skeletonSmoothing; // Skeleton smoothing enabled?
 
         // Calls all registered new frame callback functions
         inline void callNewFrameCallbacks(const ColorFrame* color, const DepthFrame* depth, const SkeletonFrame* skeleton)

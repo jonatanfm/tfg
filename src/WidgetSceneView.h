@@ -31,12 +31,15 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
         // List of transformation matrices between stream 0 and the remaining streams.
         std::vector<cv::Mat> transforms;
 
+        // Trajectories to draw.
+        std::vector<SkeletonTrajectory*> trajectories;
+
         // Quadric object for rendering shapes.
         GLUquadric* quadric;
         
-        
-        // Trajectories to draw.
-        std::vector<SkeletonTrajectory*> trajectories;
+        // Textures cache.
+        TextureManager textures;
+
 
 
         // Current scene camera position and orientation
@@ -170,9 +173,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
             // Draw objects
             #ifdef HAS_BULLET
-            {
-                mainWindow.getWorld().renderDebug();
-            }
+                mainWindow.getWorld().render3D(textures);
             #endif
 
             // Draw 3D skeleton (if valid)

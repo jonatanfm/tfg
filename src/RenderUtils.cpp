@@ -8,13 +8,52 @@ Texture RenderUtils::createTexture(int width, int height, GLint internalFormat, 
     glGenTextures(1, &tex);
 
     glBindTexture(GL_TEXTURE_2D, tex);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, nullptr);
+
     glBindTexture(GL_TEXTURE_2D, 0);
 
     return tex;
 }
+
+Texture RenderUtils::createTexture(const cv::Mat& img, GLint internalFormat)
+{
+    GLuint tex;
+    glGenTextures(1, &tex);
+
+    GLenum format, type;
+
+    switch (img.channels()) {
+        case 1: format = GL_RED; break;
+        case 2: format = GL_RG; break;
+        case 3: format = GL_BGR; break;
+        default: format = GL_BGRA;
+    }
+
+    switch (img.depth()) {
+        case CV_8S: type = GL_BYTE; break;
+        case CV_16U: type = GL_UNSIGNED_SHORT; break;
+        case CV_16S: type = GL_SHORT; break;
+        case CV_32S: type = GL_INT; break;
+        case CV_32F: type = GL_FLOAT; break;
+        default: type = GL_UNSIGNED_BYTE;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, img.cols, img.rows, 0, format, type, (GLvoid*)img.data);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    return tex;
+}
+
 
 void RenderUtils::drawRect(float x, float y, float w, float h, float tx, float ty, float tw, float th)
 {
@@ -86,6 +125,47 @@ void RenderUtils::setTexture(Texture tex)
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, tex);
     }
+}
+
+void RenderUtils::drawCube(float szX, float szY, float szZ)
+{
+    glBegin(GL_QUADS);
+        glNormal3f(0.0f, 0.0f, 1.0f);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-szX, -szY, szZ);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(szX, -szY, szZ);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(szX, szY, szZ);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-szX, szY, szZ);
+
+        glNormal3f(0.0f, 0.0f, -1.0f);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(-szX, -szY, -szZ);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(-szX, szY, -szZ);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(szX, szY, -szZ);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(szX, -szY, -szZ);
+
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-szX, szY, -szZ);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-szX, szY, szZ);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(szX, szY, szZ);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(szX, szY, -szZ);
+
+        glNormal3f(0.0f, -1.0f, 0.0f);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(-szX, -szY, -szZ);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(szX, -szY, -szZ);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(szX, -szY, szZ);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(-szX, -szY, szZ);
+
+        glNormal3f(1.0f, 0.0f, 0.0f);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(szX, -szY, -szZ);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(szX, szY, -szZ);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(szX, szY, szZ);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(szX, -szY, szZ);
+
+        glNormal3f(-1.0f, 0.0f, 0.0f);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-szX, -szY, -szZ);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(-szX, -szY, szZ);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(-szX, szY, szZ);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-szX, szY, -szZ);
+    glEnd();
 }
 
 
