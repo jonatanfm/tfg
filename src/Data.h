@@ -9,7 +9,6 @@
 
 #include "globals.h"
 
-
 // A color frame pixel
 union ColorPixel
 {
@@ -79,6 +78,8 @@ struct ColorFrame
     static const int SIZE = WIDTH * HEIGHT;
     static const unsigned int BYTES = SIZE * sizeof(ColorPixel);  // Size in bytes of a Color frame
 
+	typedef std::function< bool (ColorFrame*) > Overlay;
+	std::vector< std::pair<std::string, Overlay> > overlays;
 
     ColorPixel pixels[SIZE];
 
@@ -102,6 +103,8 @@ struct ColorFrame
     {
         return pixels[y * WIDTH + x];
     }
+
+	
 
 };
 

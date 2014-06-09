@@ -80,9 +80,10 @@ void RenderUtils::drawPoint(const Point2D& p, float radius)
 
 void RenderUtils::drawPoint(const Point3D& p, float radius)
 {
-    glBegin(GL_LINES);
+	glPointSize(radius);
+    glBegin(GL_POINTS);
         glVertex3f(p.x, p.y, p.z);
-        glVertex3f(p.x, p.y, p.z);
+        //glVertex3f(p.x, p.y, p.z);
     glEnd();
 }
 
@@ -223,6 +224,7 @@ void RenderUtils::drawBone(const NUI_SKELETON_DATA& skel, Point3D* points, NUI_S
     if (s0 == NUI_SKELETON_POSITION_INFERRED &&
         s1 == NUI_SKELETON_POSITION_INFERRED)
     {
+		
         return;
     }
 
@@ -286,6 +288,11 @@ void RenderUtils::drawSkeleton(const NUI_SKELETON_DATA& skel, SkeletonPointConve
         else if (state == NUI_SKELETON_POSITION_INFERRED) {
             RenderUtils::setColor(COLOR_BONE_INFERRED);
         }
+		else if (state == NUI_SKELETON_POSITION_NOT_TRACKED) {
+			qDebug()<<"hola"<<endl;
+            RenderUtils::setColor(COLOR_BONE_TRACKED);
+        }
+		
         RenderUtils::drawPoint(points[i], 3.0f);
     }
 }

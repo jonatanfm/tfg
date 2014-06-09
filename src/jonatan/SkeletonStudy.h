@@ -11,8 +11,7 @@
 #include "../globals.h"
 
 #include "../AsyncStream.h"
-
-
+#include "../RecordedStream.h"
 
 
 #ifndef WITH_LIBXL
@@ -44,11 +43,14 @@ private:
 	vector<const char*> skelName;
 	vector<const char*> jointName;
 
+	vector<Point> punts;
 	vector<float> aver;
 	vector<float> desv;
 	float tot;
 	
 	AsyncStream* s;
+	RecordedStream* rec;
+
 	#ifdef HAS_LIBXL
 
 				Book* booktmp;
@@ -59,19 +61,21 @@ private:
 
 public:
 
-		SkeletonStudy(Ptr<DataStream> baseStream,int typ, QString bones) :
+		SkeletonStudy(Ptr<DataStream> baseStream, int typ, QString bones) :
             base(baseStream),
 			type(typ)
         {
 			
 			tot=0;
-			
+
 			loadBonesData(bones);
 
 			createSkeletonNames();
 			createJointNames();
-			s = dynamic_cast<AsyncStream*>(base.obj);
 
+			s = dynamic_cast<AsyncStream*>(base.obj);
+			rec = dynamic_cast<RecordedStream*>(s);
+			
             colorFrame = new ColorFrame();
 
 			skeletonFrame = new SkeletonFrame();
@@ -137,7 +141,7 @@ public:
             {
 				
 				if (s==NULL) stopping=true;
-
+				
 
                 base->waitForFrame(buffer, nullptr, skel);
 
@@ -147,17 +151,22 @@ public:
 				}
 				else if (type==1) {
 					if ( base->getSkeletonFrame(skeleton) ) 
-							trackImprovedSkeleton(skeleton.frame);
+							trackImprovedSkeleton(skeleton.frame,skel);
+					if(rec->hasFinished()) stopping=true;
 				}
 				else if (type==2) {
+					if(rec->hasFinished()) rec->reset();
 					if ( base->getSkeletonFrame(skeleton) ) 
 							trackSkeletonPositions(skeleton.frame);
 				}
-						
+				
 				
                 pushFrame(buffer, nullptr, skel);
+				
             }
 			
+			
+
 			delete buffer;
 			delete skel;
 
@@ -181,7 +190,7 @@ public:
 
 		void trackSkeleton(const NUI_SKELETON_FRAME& frame);
 
-		void trackImprovedSkeleton(const NUI_SKELETON_FRAME& frame);
+		void trackImprovedSkeleton(const NUI_SKELETON_FRAME& frame,SkeletonFrame* frame2);
 
 		void trackSkeletonPositions(const NUI_SKELETON_FRAME& frame);
 
@@ -242,12 +251,13 @@ public:
 			const char *filename = ba.data();
 
 			Book* book = xlCreateBook();
-			
+			qDebug() <<filename<<endl;
 			if(book->load(filename))
 			   {
 				  Sheet* sheet = book->getSheet(0);
 				  if(sheet)
 				  {
+
 					 for(int i=0; i<19; ++i)
 					 {
 						aver.push_back(sheet->readNum(3, 2+i));

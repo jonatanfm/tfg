@@ -36,22 +36,24 @@ void SkeletonStudy::trackSkeleton(const NUI_SKELETON_FRAME& frame){
 	
 }
 
-void SkeletonStudy::trackImprovedSkeleton(const NUI_SKELETON_FRAME& frame){
+void SkeletonStudy::trackImprovedSkeleton(const NUI_SKELETON_FRAME& frame, SkeletonFrame* frame2){
 
 	vector<Vector4> positions;
 	vector<bool> tracked;
+	bool finish=false;
+
 	for (int i = 0; i < NUI_SKELETON_COUNT; ++i) {
         NUI_SKELETON_TRACKING_STATE state = frame.SkeletonData[i].eTrackingState;
         if (NUI_SKELETON_TRACKED == state) {
-            
+
 			tot++;
 			
 			for ( int k=0;k<20;k++){
 				positions.push_back(frame.SkeletonData[i].SkeletonPositions[k]);
 			}
+			
+			finish=false;
 
-			bool finish=false;
-			//qDebug()<<frame.SkeletonData[i].eSkeletonPositionTrackingState[5]<<endl;
 			while (!finish){
 				finish=true;
 				if (!checkSkeletonLength(positions[0],positions[1],0)) finish=false;
@@ -93,12 +95,27 @@ void SkeletonStudy::trackImprovedSkeleton(const NUI_SKELETON_FRAME& frame){
             saveBoneLength(positions[16],positions[17],16);
             saveBoneLength(positions[17],positions[18],17);
             saveBoneLength(positions[18],positions[19],18);
+			int z;
+
+			if(i==6) z=i-1;
+			else z=i+1;
+
+			for(int l=0;l<20;l++){
+				frame2->frame.SkeletonData[z].SkeletonPositions[l] = positions[l];
+				frame2->frame.SkeletonData[z].eSkeletonPositionTrackingState[l] = frame.SkeletonData[i].eSkeletonPositionTrackingState[l];	
+			}
+			frame2->frame.SkeletonData[z].dwEnrollmentIndex = frame.SkeletonData[i].dwEnrollmentIndex;
+			frame2->frame.SkeletonData[z].dwQualityFlags = frame.SkeletonData[i].dwQualityFlags;
+			frame2->frame.SkeletonData[z].dwTrackingID = frame.SkeletonData[i].dwTrackingID;
+			frame2->frame.SkeletonData[z].dwUserIndex = frame.SkeletonData[i].dwUserIndex;
+			frame2->frame.SkeletonData[z].eTrackingState = frame.SkeletonData[i].eTrackingState;
+			frame2->frame.SkeletonData[z].Position = positions[0];
+
 		}
         else if (NUI_SKELETON_POSITION_ONLY == state) {
 
         }
     }
-		
 }
 
 
@@ -115,13 +132,7 @@ void SkeletonStudy::trackSkeletonPositions(const NUI_SKELETON_FRAME& frame) {
 					sheettmp[k]->writeNum(2+tot, 3, frame.SkeletonData[i].SkeletonPositions[k].x);
 					sheettmp[k]->writeNum(2+tot, 4, frame.SkeletonData[i].SkeletonPositions[k].y);
 					sheettmp[k]->writeNum(2+tot, 5, frame.SkeletonData[i].SkeletonPositions[k].z);
-					if(frame.SkeletonData[i].eSkeletonPositionTrackingState[k]==0)
-						sheettmp[k]->writeStr(2+tot, 6, "not tracked");
-					else if(frame.SkeletonData[i].eSkeletonPositionTrackingState[k]==1)
-						sheettmp[k]->writeStr(2+tot, 6, "inferred");
-					else if(frame.SkeletonData[i].eSkeletonPositionTrackingState[k]==2)
-						sheettmp[k]->writeStr(2+tot, 6, "tracked");
-
+					sheettmp[k]->writeNum(2+tot, 6, frame.SkeletonData[i].eSkeletonPositionTrackingState[k]);//0 no tracked,1 infered,2 tracked
 				#endif
 					
 			}
@@ -134,11 +145,11 @@ void SkeletonStudy::trackSkeletonPositions(const NUI_SKELETON_FRAME& frame) {
 }
 
 void SkeletonStudy::saveBoneLength(const Vector4& skel1,const Vector4& skel2,int pos){
-
+	
 	Point tmp = Point(skel2.x-skel1.x,skel2.y-skel1.y,skel2.z-skel1.z);
+	
 
 	float res = abs(sqrt((tmp.x*tmp.x) + (tmp.y*tmp.y) +(tmp.z*tmp.z)));
-
 		
 	#ifdef HAS_LIBXL
 		sheettmp[pos]->writeNum(tot+2, 2, tot);
@@ -150,13 +161,14 @@ void SkeletonStudy::saveBoneLength(const Vector4& skel1,const Vector4& skel2,int
 }
 
 bool SkeletonStudy::checkSkeletonLength(Vector4& skel1,Vector4& skel2,int pos) {
-
+	
+	
 	Point tmp = Point(skel2.x-skel1.x,skel2.y-skel1.y,skel2.z-skel1.z);
 
 	float res = abs(sqrt((tmp.x*tmp.x) + (tmp.y*tmp.y) +(tmp.z*tmp.z)));
 
 	tmp = Point(tmp.x/res,tmp.y/res,tmp.z/res);
-
+	
 	float d = res - aver[pos];
 
 	if ( d < 0 && d < -desv[pos] ) {
