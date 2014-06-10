@@ -17,12 +17,18 @@ class SkeletonIO
         // The current file version
         static const int VERSION = 1;
 
+        // Recording flags
+        enum Flag : uint8_t
+        {
+            FLAG_SKELETON_NOT_SMOOTHED = 1
+        };
+
         // The file header
         struct Header
         {
             uint16_t magicNumber;
             uint8_t version;
-            uint8_t reserved;
+            uint8_t flags;
             uint32_t numFrames;
         };
 
@@ -31,7 +37,15 @@ class SkeletonIO
         unsigned int currentFrame; // Current frame (reading) 
         unsigned int numFrames; // Total frame count (i.e. last written frame, while writing)
 
+        uint8_t flags; // Recording flags
+
         bool writing; // True if writing, false if reading.
+
+        inline void setFlag(Flag flag, bool value)
+        {
+            if (value) flags = flags | flag;
+            else flags = flags & ~flag;
+        }
 
     public:
 
@@ -58,6 +72,7 @@ class SkeletonIO
                 Header header = { 0 };
                 header.magicNumber = MAGIC_NUMBER;
                 header.version = VERSION;
+                header.flags = flags;
                 header.numFrames = numFrames;
                 fwrite(&header, sizeof(header), 1, file);
                 writing = false;
@@ -77,6 +92,12 @@ class SkeletonIO
             return file != nullptr;
         }
 
+        // Returns true if the skeleton is smoothed
+        bool isSmoothed() const
+        {
+            return !(flags & FLAG_SKELETON_NOT_SMOOTHED);
+        }
+
 
         //
         // FILE READING
@@ -94,6 +115,7 @@ class SkeletonIO
             // Is a skeleton frames file?
             if (header.magicNumber != MAGIC_NUMBER || header.version != VERSION) return false;
 
+            flags = header.flags;
             numFrames = header.numFrames;
             currentFrame = 0;
             return true;
@@ -182,6 +204,12 @@ class SkeletonIO
             }
             writing = true;
             return true;
+        }
+
+        // Sets whether the written skeleton frame has been smoothed or not
+        void setSmoothed(bool smoothed)
+        {
+            setFlag(FLAG_SKELETON_NOT_SMOOTHED, !smoothed);
         }
 
         // Writes a single skeleton frame to the current open file.

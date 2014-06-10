@@ -20,7 +20,12 @@
 #include "jonatan/CaptureSkeleton.h"
 #include "jonatan/SkeletonStudy.h"
 
+#ifdef HAS_LIBXL
 
+#include "libxl.h"
+using namespace libxl;
+
+#endif
 
 static MainWindow* instance = nullptr;
 
@@ -176,6 +181,15 @@ void MainWindow::setDrawSkeletons(bool draw)
     toggleSkeletonsOverlay(dynamic_cast<WidgetOpenGL*>(win->widget()));
 }
 
+void MainWindow::setSmoothSkeletons(bool smooth)
+{
+    Ptr<DataStream> stream = getCurrentStream();
+    if (stream != nullptr) {
+        stream->setSkeletonSmoothing(smooth);
+        updateToolbar();
+    }
+}
+
 void MainWindow::setDrawTrajectory()
 {
     Ptr<DataStream> stream = getCurrentStream();
@@ -217,25 +231,46 @@ void MainWindow::setDrawTrajectory()
 
 void MainWindow::changedSubwindow(QMdiSubWindow* win)
 {
-    if (win == nullptr) {
-        actionDrawSkeleton->setEnabled(false);
+    updateToolbar();
+
+    // Widget specific controls
+    QList<QAction*> actions = toolbar->actions();
+    for (int i = actions.size() - 1; actions[i] != actionRestart; --i) {
+        toolbar->removeAction(actions[i]);
     }
-    else {
-        WidgetOpenGL* w = dynamic_cast<WidgetOpenGL*>(win->widget());
+
+    if (win != nullptr) {
+        SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(win->widget());
         if (w != nullptr) {
-            if (w->is<WidgetColorView>() || w->is<WidgetDepthView>()) {
-                actionDrawSkeleton->setEnabled(true);
-                actionDrawSkeleton->setChecked(w->hasOverlay("skeleton"));
-            }
-            else actionDrawSkeleton->setEnabled(false);
+            int n = toolbar->actions().size();
+            w->createActions(toolbar);
+            if (n < toolbar->actions().size()) toolbar->insertSeparator(toolbar->actions()[n]);
         }
     }
-    updateStreamStatus();
 }
 
-void MainWindow::updateStreamStatus()
+void MainWindow::updateToolbar()
 {
+    QMdiSubWindow* win = mdiArea->currentSubWindow();
     Ptr<DataStream> stream = getCurrentStream();
+
+    // Draw skeletons
+    WidgetOpenGL* w = (win == nullptr) ? nullptr : dynamic_cast<WidgetOpenGL*>(win->widget());
+    if (w != nullptr && (w->is<WidgetColorView>() || w->is<WidgetDepthView>())) {
+        actionDrawSkeleton->setEnabled(true);
+        actionDrawSkeleton->setChecked(w->hasOverlay("skeleton"));
+    }
+    else actionDrawSkeleton->setEnabled(false);
+
+
+    // Smooth skeletons
+    if (stream != nullptr && stream->hasSkeleton()) {
+        actionSmoothSkeleton->setEnabled(true);
+        actionSmoothSkeleton->setChecked(stream->getSkeletonSmoothing());
+    }
+    else actionSmoothSkeleton->setEnabled(false);
+
+    // Recorded stream controls
     RecordedStream* rs = dynamic_cast<RecordedStream*>(stream.obj);
     bool isRecordedStream = (rs != nullptr);
 
@@ -258,7 +293,7 @@ void MainWindow::streamPlayPause()
     RecordedStream* rs = dynamic_cast<RecordedStream*>(getCurrentStream().obj);
     if (rs != nullptr) {
         rs->setPaused(!rs->isPaused());
-        updateStreamStatus();
+        updateToolbar();
     }
 }
 
@@ -267,7 +302,7 @@ void MainWindow::streamRestart()
     RecordedStream* rs = dynamic_cast<RecordedStream*>(getCurrentStream().obj);
     if (rs != nullptr) {
         rs->reset();
-        updateStreamStatus();
+        updateToolbar();
     }
 }
 
@@ -277,7 +312,7 @@ void MainWindow::streamAdvance()
     if (rs != nullptr) {
         if (!rs->isPaused()) rs->setPaused(true);
         rs->advance();
-        updateStreamStatus();
+        updateToolbar();
     }
 }
 
@@ -527,26 +562,25 @@ void MainWindow::operationFinished()
 
 void MainWindow::skeletonTraking()
 {
-    SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
-    if (w != nullptr) {
-        Ptr<DataStream> stream = w->getStream();
-        if (stream != nullptr) {
-			double d = QInputDialog::getDouble(this, tr("Enter Radius Bone Length"),
-                                        tr("Enter Radius Bone Length in cms:\n(with 0 value this info will be ignored)"), 0, 0, 1000, 2);
-			double d2 = QInputDialog::getDouble(this, tr("Enter Tibia Bone Length"),
-                                        tr("Enter Tibia Bone Length in cms:\n(with 0 value this info will be ignored)"), 0, 0, 1000, 2);
-            
+    Ptr<DataStream> stream = getCurrentStream();
+    if (stream != nullptr) {
+        double d = QInputDialog::getDouble(this, tr("Enter Radius Bone Length"),
+                                    tr("Enter Radius Bone Length in cms:\n(with 0 value this info will be ignored)"), 0, 0, 1000, 2);
+        double d2 = QInputDialog::getDouble(this, tr("Enter Tibia Bone Length"),
+                                    tr("Enter Tibia Bone Length in cms:\n(with 0 value this info will be ignored)"), 0, 0, 1000, 2);
+       
+        stream->setSkeletonSmoothing(false);
+        updateToolbar();
 
-            addStream(new CaptureSkeleton(stream, (float)d, (float)d2));
-            
-        }
+        addStream(new CaptureSkeleton(stream, (float)d, (float)d2));
     }
 }
 
 void MainWindow::skeletonWorking()
 {
-	int type = QInputDialog::getInt(this, tr("Enter mode to improve skeleton:"),
+    int type = QInputDialog::getInt(this, tr("Enter mode to improve skeleton:"),
                                         tr("Enter mode to improve skeleton:\nWithout improvement: 0\nWith length check: 1\nWith recover losed data: 2"), 0, 0, 5);
+
 	
 		if(type==1){
 			QFileDialog dialog(this);
@@ -565,7 +599,6 @@ void MainWindow::skeletonWorking()
 					if (stream != nullptr) {
 
 						 addStream(new SkeletonStudy(stream,type,tmp));
-
             
 					}
 				}
@@ -583,7 +616,6 @@ void MainWindow::skeletonWorking()
 					}
 				}
 		}
-	
 }
 
 void MainWindow::startOperation(Operation* op, std::function< void() > callback)
@@ -619,7 +651,7 @@ void MainWindow::startOperation(Operation* op, std::function< void() > callback)
 
 #else
 
-void MainWindow::openAugmentedView() { }
+    void MainWindow::openAugmentedView() { }
 
 #endif
 
@@ -694,6 +726,12 @@ void MainWindow::setupUi()
 
         ACTION_SHORTCUT("Show Skeleton Trajectories", setDrawTrajectory(), Qt::Key_F6);
 
+        ACTION_2("Smooth Skeletons", triggered(bool), setSmoothSkeletons(bool));
+        SHORTCUT(Qt::Key_F7);
+        action->setCheckable(true);
+        action->setChecked(false);
+        actionSmoothSkeleton = action;
+
         ACTION_2("Draw Skeletons", triggered(bool), setDrawSkeletons(bool));
         SHORTCUT(Qt::Key_F5);
         action->setCheckable(true);
@@ -707,9 +745,9 @@ void MainWindow::setupUi()
 
         ACTION("Correct depth", openDepthCorrector());
 
-		ACTION("Track Skeleton Lengths", skeletonTraking());
+        ACTION("Track Skeleton Lengths", skeletonTraking());
 
-		ACTION("Skeleton Study", skeletonWorking());
+        ACTION("Skeleton Study", skeletonWorking());
 
         ACTION_SHORTCUT("Record", openRecorder(), Qt::Key_F12);
     }
@@ -750,9 +788,9 @@ void MainWindow::setupUi()
     iconPlay = QIcon(":/control_play_blue.png");
     iconPause = QIcon(":/control_pause_blue.png");
 
-    QToolBar* toolBar = new QToolBar(this);
+    toolbar = new QToolBar(this);
     {
-        QToolBar* menu = toolBar;
+        QToolBar* menu = toolbar;
 
         ACTION_ICON("Fixed Image Stream...", openImageStream(), ":/folder_picture.png");
         ACTION_ICON("Recorded Stream...", openRecordedStream(), ":/folder_camera.png");
@@ -772,7 +810,7 @@ void MainWindow::setupUi()
         ACTION_ICON("Reset", streamRestart(), ":/control_start_blue.png");
         actionRestart = action;
     }
-    addToolBar(Qt::TopToolBarArea, toolBar);
+    addToolBar(Qt::TopToolBarArea, toolbar);
 
     QWidget* centralwidget = new QWidget(this);
     QGridLayout* gridLayout = new QGridLayout(centralwidget);

@@ -59,8 +59,8 @@ SOURCES += \
     WidgetOpenGL.cpp \
     WidgetRecorder.cpp \
     otger/DepthCorrector.cpp \
-	jonatan/CaptureSkeleton.cpp \
-	jonatan/SkeletonStudy.cpp
+    jonatan/CaptureSkeleton.cpp \
+    jonatan/SkeletonStudy.cpp
 
 HEADERS += \
     globals.h \
@@ -89,8 +89,8 @@ HEADERS += \
     WidgetRecorder.h \
     WidgetStreamManager.h \
     otger/DepthCorrector.h \
-	jonatan/CaptureSkeleton.h \
-	jonatan/SkeletonStudy.h
+    jonatan/CaptureSkeleton.h \
+    jonatan/SkeletonStudy.h
 
 FORMS += WidgetRecorder.ui
 
@@ -104,10 +104,18 @@ exists(../config.pro) {
 
     SOURCES += \
         otger/World.cpp \
+        otger/Skeleton.cpp \
         otger/WidgetAugmentedView.cpp
         
     HEADERS += \
+        otger/KinematicMotionState.h \
         otger/World.h \
+        otger/Object.h \
+        otger/BasicObject.h \
+        otger/Skeleton.h \
+        otger/Ball.h \
+        otger/Cube.h \
+        otger/Floor.h \
         otger/WidgetAugmentedView.h
     
     INCLUDEPATH += $$(BULLET_DIR)/src

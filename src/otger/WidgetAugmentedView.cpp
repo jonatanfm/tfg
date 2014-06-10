@@ -1,11 +1,16 @@
 
 #include "WidgetAugmentedView.h"
 
+#include "DepthCorrector.h"
+
 #include "../RenderUtils.h"
 
 #include "../MainWindow.h"
 
 #include "../KinectStream.h"
+
+#include "Ball.h"
+#include "Cube.h"
 
 
 #include "shaders/shaders.h"
@@ -18,7 +23,8 @@ const float zNear = 0.01f, zFar = 20.0f;
 
 
 WidgetAugmentedView::WidgetAugmentedView(MainWindow& mainWindow) :
-    WidgetOpenGL(mainWindow)
+    WidgetOpenGL(mainWindow),
+    depthCorrectionMethod(0)
 {
     auto& streams = mainWindow.getStreams();
     if (streams.size() < 1) return;
@@ -73,11 +79,24 @@ void WidgetAugmentedView::initialize()
     });
 }
 
+void WidgetAugmentedView::nextDepthCorrectionMethod()
+{
+    depthCorrectionMethod = (depthCorrectionMethod + 1) % 3;
+}
+
 bool WidgetAugmentedView::render()
 {
     if (!stream) return false;
     stream->getColorFrame(colorFrame);
     stream->getDepthFrame(depthFrame);
+
+    switch (depthCorrectionMethod)
+    {
+        case 0: depthBuffer = depthFrame;  break;
+        case 1: DepthCorrector::correctDepthFrame_Naive(depthFrame, depthBuffer);  break; // DepthCorrector::correctDepthFrame()
+        case 2: break;
+        case 3: break;
+    }
 
     // Setup perspective
     glMatrixMode(GL_PROJECTION);
@@ -110,7 +129,7 @@ bool WidgetAugmentedView::render()
 
     KinectStream* kinect = dynamic_cast<KinectStream*>(stream.obj);
     if (kinect != nullptr) {
-        kinect->mapColorFrameToDepthFrame(depthFrame, OUT mapping);
+        kinect->mapColorFrameToDepthFrame(depthBuffer, OUT mapping);
 
         const NUI_DEPTH_IMAGE_POINT* src = mapping;
         GLushort* dest = textureDepthBuffer;
@@ -154,20 +173,69 @@ bool WidgetAugmentedView::render()
 
     glScalef(1.0f, 1.0f, -1.0f); // Invert Z axis so that +Z is in front of the camera
 
-    //shaderDefault.bind();
-
-    glBegin(GL_TRIANGLE_STRIP);
-
+    // A test plane
+    /*glBegin(GL_TRIANGLE_STRIP);
         glVertex3f(-0.5f, -0.5f, 0.5f);
         glVertex3f(-0.5f, 0.5f, 2.0f);
         glVertex3f(0.5f, -0.5f, 2.0f);
         glVertex3f(0.5f, 0.5f, 3.5f);
+    glEnd();*/
 
-    glEnd();
-        
-    //shaderDefault.release();
-
-    //mainWindow.getWorld().render();
+    // Draw the objects
+    mainWindow.getWorld().render(textures);
 
     return true;
+}
+
+
+#define ACTION_ICON(_text, _slot, _icon) { \
+        action = new QAction(QApplication::translate("MainWindow", (_text), 0), this); \
+        action->setIcon(QIcon(_icon)); \
+        QObject::connect(action, SIGNAL(triggered()), this, SLOT(_slot)); \
+        menu->addAction(action); \
+    }
+
+
+void WidgetAugmentedView::createActions(QToolBar* menu)
+{
+    QAction* action;
+
+    ACTION_ICON("Spawn Object", spawnObject(), ":/add.png");
+
+    ACTION_ICON("Spawn Ball", spawnBall(), ":/sport_soccer.png");
+    ACTION_ICON("Spawn Cube", spawnCube(), ":/package.png");
+
+    menu->addSeparator();
+
+    ACTION_ICON("Delete all objects", clearObjects(), ":/bin_closed.png");
+
+    menu->addSeparator();
+
+    ACTION_ICON("Change depth correction method", changeDepthCorrectionMethod(), ":/layers.png");
+
+}
+
+void WidgetAugmentedView::spawnObject()
+{
+    
+}
+
+void WidgetAugmentedView::spawnCube()
+{
+    mainWindow.getWorld().addObject(new Cube(0, 5.0f, 2.0f, 0.5f, 1.0f));
+}
+
+void WidgetAugmentedView::spawnBall()
+{
+    mainWindow.getWorld().addObject(new Ball(0, 5.0f, 2.0f, 0.4f, 1.0f));
+}
+
+void WidgetAugmentedView::clearObjects()
+{
+    mainWindow.getWorld().clearObjects();
+}
+
+void WidgetAugmentedView::changeDepthCorrectionMethod()
+{
+    nextDepthCorrectionMethod();
 }

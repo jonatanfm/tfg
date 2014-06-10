@@ -114,7 +114,9 @@ class MainWindow : public QMainWindow
         QLabel* statusBarText;
         QProgressBar* statusBarProgress;
 
-        QAction* actionDrawSkeleton;
+        QToolBar* toolbar;
+
+        QAction *actionDrawSkeleton, *actionSmoothSkeleton;
 
         QAction *actionPlayPause, *actionRestart, *actionAdvance;
 
@@ -146,8 +148,8 @@ class MainWindow : public QMainWindow
         // Toggles between showing or not the skeletons in the given widget (if can display skeletons).
         void toggleSkeletonsOverlay(WidgetOpenGL* widget);
 
-        // Called when a stream has been paused, unpaused, resetted, etc.
-        void updateStreamStatus();
+        // Called when a stream has been paused, unpaused, resetted, an option has changed, etc.
+        void updateToolbar();
 
 
         // Returns the index of the given stream.
@@ -220,6 +222,7 @@ class MainWindow : public QMainWindow
 
         void changedSubwindow(QMdiSubWindow* win);
 
+        void setSmoothSkeletons(bool);
         void setDrawSkeletons(bool);
         void setDrawTrajectory();
         
@@ -232,13 +235,13 @@ class MainWindow : public QMainWindow
         void setOperationProgress(int, int);
         void operationFinished();
 
-		void skeletonTraking();
-		void skeletonWorking();
+        void skeletonTraking();
+        void skeletonWorking();
 
         void streamPlayPause();
         void streamRestart();
         void streamAdvance();
-		
+        
 
 };
 

@@ -17,6 +17,8 @@ class MainWindow;
 // Widget that displays an augmented view, showing a real scene with virtual objects.
 class WidgetAugmentedView : public WidgetOpenGL, protected QGLFunctions, public SubWindowWidget
 {
+    Q_OBJECT
+
     private:
 
         Ptr<DataStream> stream; // The stream that provides color/depth/skeleton data.
@@ -27,6 +29,7 @@ class WidgetAugmentedView : public WidgetOpenGL, protected QGLFunctions, public 
         FrameNum frameNum;
         ColorFrame colorFrame; // The input color frame
         DepthFrame depthFrame; // The input depth frame
+        DepthFrame depthBuffer; // Temporary depth buffer (for correction)
 
         // Output buffer for depth-to-color frame mapping.
         __declspec(align(16))
@@ -35,6 +38,11 @@ class WidgetAugmentedView : public WidgetOpenGL, protected QGLFunctions, public 
         // Buffer for updatig the depth texture contents.
         __declspec(align(16))
         GLushort textureDepthBuffer[DepthFrame::SIZE];
+
+        // Textures cache
+        TextureManager textures;
+
+        int depthCorrectionMethod;
 
         // Shaders
         QGLShaderProgram shaderDefault, shader2D;
@@ -49,10 +57,24 @@ class WidgetAugmentedView : public WidgetOpenGL, protected QGLFunctions, public 
             return stream;
         }
 
+        virtual void createActions(QToolBar* toolbar) override;
+
         void initialize() override;
 
         bool render() override;
 
+
+        void nextDepthCorrectionMethod();
+
+    public slots:
+
+        void spawnObject();
+        void spawnCube();
+        void spawnBall();
+
+        void clearObjects();
+
+        void changeDepthCorrectionMethod();
 };
 
 

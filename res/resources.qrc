@@ -7,5 +7,11 @@
     <file>control_pause_blue.png</file>
     <file>control_play_blue.png</file>
     <file>control_start_blue.png</file>
+    <file>add.png</file>
+    <file>bin_closed.png</file>
+    <file>brick.png</file>
+    <file>sport_soccer.png</file>
+    <file>package.png</file>
+    <file>layers.png</file>
 </qresource>
 </RCC>

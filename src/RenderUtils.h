@@ -54,6 +54,10 @@ class RenderUtils
         // Creates a new empty texture with the given size and internal format.
         static Texture createTexture(int width, int height, GLint internalFormat = GL_RGBA, GLenum format = GL_RGBA, GLenum type = GL_UNSIGNED_BYTE);
 
+        // Creates a new texture from the given image.
+        static Texture createTexture(const cv::Mat& image, GLint internalFormat = GL_RGBA);
+
+
         // Draws a (textured) 2D rect in the given (x,y) and with the given width and height.
         // Optionally accept texture coordinates.
         static void drawRect(float x, float y, float w, float h, float tx = 0.0f, float ty = 0.0f, float tw = 1.0f, float th = 1.0f);
@@ -69,6 +73,9 @@ class RenderUtils
 
         // Draws a 3D line between two points with the given width.
         static void drawLine(const Point3D& p1, const Point3D& p2, float lineWidth = 1.0f);
+
+        // Draws a 3D cube centered at the origin and with the given half-extent values for width, height and depth.
+        static void drawCube(float szX, float szY, float szZ);
 
 
         // Sets the current color
@@ -96,6 +103,41 @@ class RenderUtils
 
         // Draws all skeletons on a skeleton frame, for a 3D scene.
         static void drawSkeletons3D(const NUI_SKELETON_FRAME& frame);
+};
+
+class TextureManager
+{
+    private:
+        std::map<std::string, Texture> textures;
+
+    public:
+
+        TextureManager() { }
+
+        ~TextureManager()
+        {
+            clear();
+        }
+
+        void clear()
+        {
+            for (auto it = textures.begin(); it != textures.end(); ++it)
+            {
+                glDeleteTextures(1, &it->second);
+            }
+            textures.clear();
+        }
+
+        Texture getTexture(const std::string& file)
+        {
+            auto it = textures.find(file);
+            if (it != textures.end()) return it->second;
+
+            cv::Mat img = cv::imread(file);
+            Texture tex = RenderUtils::createTexture(img);
+            textures[file] = tex;
+            return tex;
+        }
 };
 
 #endif

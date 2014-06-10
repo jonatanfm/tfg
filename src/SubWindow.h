@@ -54,6 +54,12 @@ class SubWindowWidget
             return nullptr;
         }
 
+        // Called to add widget-specific actions to the passed toolbar
+        virtual void createActions(QToolBar* toolbar)
+        {
+
+        }
+
 };
 
 
