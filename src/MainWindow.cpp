@@ -579,10 +579,10 @@ void MainWindow::skeletonTraking()
 void MainWindow::skeletonWorking()
 {
     int type = QInputDialog::getInt(this, tr("Enter mode to improve skeleton:"),
-                                        tr("Enter mode to improve skeleton:\nWithout improvement: 0\nWith length check: 1\nWith recover losed data: 2"), 0, 0, 5);
+                                        tr("Enter mode to improve skeleton:\nWithout improvement: 0\nWith length check: 1\nWith recover losed data: 2\nRecover losed data and length check:3"), 0, 0, 5);
 
 	
-		if(type==1){
+		if(type==1 || type==3){
 			QFileDialog dialog(this);
 			dialog.setAcceptMode(QFileDialog::AcceptOpen);
 			dialog.setFileMode(QFileDialog::ExistingFiles);
