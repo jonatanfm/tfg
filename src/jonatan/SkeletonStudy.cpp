@@ -119,22 +119,70 @@ void SkeletonStudy::trackImprovedSkeleton(const NUI_SKELETON_FRAME& frame, Skele
 }
 
 
-void SkeletonStudy::trackSkeletonPositions(const NUI_SKELETON_FRAME& frame) {
+void SkeletonStudy::trackSkeletonPositions(const NUI_SKELETON_FRAME& frame, SkeletonFrame* frame2) {
 	for (int i = 0; i < NUI_SKELETON_COUNT; ++i) {
         NUI_SKELETON_TRACKING_STATE state = frame.SkeletonData[i].eTrackingState;
         if (NUI_SKELETON_TRACKED == state) {
-            
+            pair<Point,int> g;
 			tot++;
+
 			
-			for (int k=0;k<20;k++){
-				#ifdef HAS_LIBXL
-					sheettmp[k]->writeNum(tot+2, 2, tot);
-					sheettmp[k]->writeNum(2+tot, 3, frame.SkeletonData[i].SkeletonPositions[k].x);
-					sheettmp[k]->writeNum(2+tot, 4, frame.SkeletonData[i].SkeletonPositions[k].y);
-					sheettmp[k]->writeNum(2+tot, 5, frame.SkeletonData[i].SkeletonPositions[k].z);
-					sheettmp[k]->writeNum(2+tot, 6, frame.SkeletonData[i].eSkeletonPositionTrackingState[k]);//0 no tracked,1 infered,2 tracked
-				#endif
+			if(!redo){
+				for (int k=0;k<20;k++){
+					g.first=Point(frame.SkeletonData[i].SkeletonPositions[k].x,frame.SkeletonData[i].SkeletonPositions[k].y,frame.SkeletonData[i].SkeletonPositions[k].z);
+					g.second=frame.SkeletonData[i].eSkeletonPositionTrackingState[k];
+					if(!done){
+						vector<pair<Point,int> > hj;
+						hj.push_back(g);
+						punts.push_back(hj);
+						puntsCorrected.push_back(hj);
+						if(k==19)done=true;
+					}
+					else{
+						punts[k].push_back(g);
+					}
 					
+					
+					#ifdef HAS_LIBXL
+						sheettmp[k]->writeNum(tot+2, 2, tot);
+						sheettmp[k]->writeNum(2+tot, 3, frame.SkeletonData[i].SkeletonPositions[k].x);
+						sheettmp[k]->writeNum(2+tot, 4, frame.SkeletonData[i].SkeletonPositions[k].y);
+						sheettmp[k]->writeNum(2+tot, 5, frame.SkeletonData[i].SkeletonPositions[k].z);
+						sheettmp[k]->writeNum(2+tot, 6, frame.SkeletonData[i].eSkeletonPositionTrackingState[k]);//0 no tracked,1 infered,2 tracked
+					#endif
+					
+				}
+			}
+			else{
+				
+				int z;
+				int j;
+				j=tot2-2;
+				if(tot2<2)j=tot2;
+				
+			if(i==6) z=i-1;
+			else z=i+1;
+				Vector4 h;
+				for(int l=0;l<20;l++){
+					
+					h.x=puntsCorrected[l][j].first.x;
+					h.y=puntsCorrected[l][j].first.y;
+					h.z=puntsCorrected[l][j].first.z;
+					h.w=1;
+					frame2->frame.SkeletonData[z].SkeletonPositions[l] = h;
+					frame2->frame.SkeletonData[z].eSkeletonPositionTrackingState[l] = frame.SkeletonData[i].eSkeletonPositionTrackingState[l];
+					
+				}
+				frame2->frame.SkeletonData[z].dwEnrollmentIndex = frame.SkeletonData[i].dwEnrollmentIndex;
+				frame2->frame.SkeletonData[z].dwQualityFlags = frame.SkeletonData[i].dwQualityFlags;
+				frame2->frame.SkeletonData[z].dwTrackingID = frame.SkeletonData[i].dwTrackingID;
+				frame2->frame.SkeletonData[z].dwUserIndex = frame.SkeletonData[i].dwUserIndex;
+				frame2->frame.SkeletonData[z].eTrackingState = frame.SkeletonData[i].eTrackingState;
+				h.x=puntsCorrected[0][j].first.x;h.y=puntsCorrected[0][j].first.y;h.z=puntsCorrected[0][j].first.z;h.w=1;
+				frame2->frame.SkeletonData[z].Position = h;
+				
+				if(tot2<puntsCorrected[0].size()-1)tot2++;
+				
 			}
 		}
         else if (NUI_SKELETON_POSITION_ONLY == state) {
