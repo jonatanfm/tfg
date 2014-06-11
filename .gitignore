@@ -1,10 +1,12 @@
 
 bin/
 build/
+ipch/
 
 src/release/
 src/debug/
 src/ipch/
+src/globals.h.cpp
 
 *.pro.*
 
@@ -16,6 +18,8 @@ Makefile*
 *.sdf
 *.opensdf
 *.cd
+*.psess
+*.vsp
 
 *.db
 

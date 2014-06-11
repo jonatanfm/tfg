@@ -395,7 +395,8 @@ void MainWindow::openStreamWindows(int i)
 
     if (stream->hasColor())
     {
-        WidgetColorView* view = new WidgetColorView(*this, stream);
+        WidgetColorView* view = new WidgetColorView(stream);
+        view->setModePointer(&mode);
         addSubWindow(view, "#" + QString::number(i) + " - " + name + " - Color");
         toggleSkeletonsOverlay(view);
         atLeastOne = true;
@@ -403,7 +404,8 @@ void MainWindow::openStreamWindows(int i)
 
     if (stream->hasDepth())
     {
-        WidgetDepthView* view = new WidgetDepthView(*this, stream);
+        WidgetDepthView* view = new WidgetDepthView(stream);
+        view->setModePointer(&mode);
         addSubWindow(view, "#" + QString::number(i) + " - " + name + " - Depth");
         toggleSkeletonsOverlay(view);
         atLeastOne = true;
@@ -580,27 +582,27 @@ void MainWindow::skeletonWorking()
 {
     int type = QInputDialog::getInt(this, tr("Enter mode to improve skeleton:"),
                                         tr("Enter mode to improve skeleton:\nWithout improvement: 0\nWith length check: 1\nWith recover losed data: 2"), 0, 0, 5);
-		QFileDialog dialog(this);
-		dialog.setAcceptMode(QFileDialog::AcceptOpen);
-		dialog.setFileMode(QFileDialog::ExistingFiles);
-		dialog.setNameFilter("Skeleton traked data (*.xls *.xlxs)");
-		if (dialog.exec()) {
-			QString tmp = dialog.selectedUrls().at(0).toEncoded();
-			QString delimiterPattern("///");
-			QStringList mailids = tmp.split(delimiterPattern);
-			tmp=mailids[1];
+        QFileDialog dialog(this);
+        dialog.setAcceptMode(QFileDialog::AcceptOpen);
+        dialog.setFileMode(QFileDialog::ExistingFiles);
+        dialog.setNameFilter("Skeleton traked data (*.xls *.xlxs)");
+        if (dialog.exec()) {
+            QString tmp = dialog.selectedUrls().at(0).toEncoded();
+            QString delimiterPattern("///");
+            QStringList mailids = tmp.split(delimiterPattern);
+            tmp=mailids[1];
 
-			SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
-			if (w != nullptr) {
-				Ptr<DataStream> stream = w->getStream();
-				if (stream != nullptr) {
+            SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
+            if (w != nullptr) {
+                Ptr<DataStream> stream = w->getStream();
+                if (stream != nullptr) {
 
-					 addStream(new SkeletonStudy(stream,type,tmp));
+                     addStream(new SkeletonStudy(stream,type,tmp));
 
             
-				}
-			}
-		}
+                }
+            }
+        }
 }
 
 void MainWindow::startOperation(Operation* op, std::function< void() > callback)
@@ -631,12 +633,19 @@ void MainWindow::startOperation(Operation* op, std::function< void() > callback)
 
     void MainWindow::openAugmentedView()
     {
-        reopenSingletonSubwindow<WidgetAugmentedView>("Augmented View");
+        if (streams.size() < 1) return;
+
+        reopenSingletonSubwindow<WidgetAugmentedView>("Augmented View", [](MainWindow& w) -> WidgetAugmentedView* {
+            return new WidgetAugmentedView(w.getStreams()[0], w.getWorld());
+        });
     }
 
 #else
 
-    void MainWindow::openAugmentedView() { }
+    void MainWindow::openAugmentedView()
+    {
+
+    }
 
 #endif
 
@@ -685,11 +694,16 @@ void MainWindow::setupUi()
 {
     if (objectName().isEmpty()) setObjectName(QStringLiteral("MainWindow"));
 
+    const int width = 1024, height = 720;
+
     setWindowTitle(QApplication::translate("MainWindow", "TFG", 0));
-    resize(800, 600);
+
+    QDesktopWidget desktop;
+    setGeometry((desktop.screen()->width() - width) / 2, 12 + (desktop.screen()->height() - height) / 2, width, height);
+    //resize(width, height);
 
     QMenuBar* menubar = new QMenuBar(this);
-    menubar->setGeometry(QRect(0, 0, 800, 21));
+    menubar->setGeometry(QRect(0, 0, width, 21));
 
     QMenu* menu;
     QAction* action;

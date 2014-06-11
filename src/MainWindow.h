@@ -49,9 +49,9 @@ class MainWindow : public QMainWindow
         }
 
         // Get the current mode of interaction (may be null).
-        Ptr<Mode> getMode() const
+        const Ptr<Mode>* getModePointer() const
         {
-            return mode;
+            return &mode;
         }
 
         // Get the list of all streams (may contain nulls).
@@ -178,11 +178,17 @@ class MainWindow : public QMainWindow
             return nullptr;
         }
 
+        template<class T>
+        static T* defaultSubwindowFactory(MainWindow& window)
+        {
+            return new T(window);
+        }
+
         // If a subwindow with the templated type of widget does not exists, opens it with the given title.
         // Otherwise it is closed and reopen.
         // (Note: the widget is constructed with a single argument, being a reference to the MainWindow)
         template<class T>
-        inline void reopenSingletonSubwindow(const char* title)
+        inline void reopenSingletonSubwindow(const char* title, std::function<T* (MainWindow& window)> factory = &defaultSubwindowFactory<T>)
         {
             std::vector<QWidget*> toRemove;
             QList<QMdiSubWindow*> lst = mdiArea->subWindowList();
@@ -192,9 +198,8 @@ class MainWindow : public QMainWindow
             }
             for (int i = 0; i < int(toRemove.size()); ++i) mdiArea->removeSubWindow(toRemove[i]);
 
-            addSubWindow(new T(*this), title);
+            addSubWindow(factory(*this), title);
         }
-
 
     // QT slot functions, called as a result of interaction with the GUI elements (mainly the menus).
     public slots:

@@ -14,9 +14,12 @@
 // Widget implementing a 3D view of the scene.
 // When callibrated a set of cameras, will show their relative positions.
 // If Bullet support is enabled and a World is created, will render its virtual objects.
-class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
+class WidgetSceneView : public WidgetOpenGL, protected QGLFunctions, public SubWindowWidget
 {
     private:
+
+        // The main window
+        MainWindow& mainWindow;
 
         // Mutex to control updating of the skeleton frame.
         QMutex skeletonMutex;
@@ -37,8 +40,8 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
         // Quadric object for rendering shapes.
         GLUquadric* quadric;
         
-        // Textures cache.
-        TextureManager textures;
+        // Textures and shaders cache.
+        RenderManager renderManager;
 
 
 
@@ -65,11 +68,13 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
     public:
         WidgetSceneView(MainWindow& mainWindow) :
-            WidgetOpenGL(mainWindow),
+            mainWindow(mainWindow),
+            renderManager(*this),
             cam(),
             keys(),
             mouse()
         {
+            setModePointer(mainWindow.getModePointer());
             setFPS(60);
 
             cam.y = 2.0f;
@@ -100,6 +105,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
             }
 
             setFocusPolicy(Qt::StrongFocus);
+            resize(preferredWidth, preferredHeight);
         }
 
         virtual ~WidgetSceneView()
@@ -115,6 +121,8 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
         void initialize() override
         {
+            initializeGLFunctions();
+
             quadric = gluNewQuadric();
 
             glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
@@ -173,7 +181,7 @@ class WidgetSceneView : public WidgetOpenGL, public SubWindowWidget
 
             // Draw objects
             #ifdef HAS_BULLET
-                mainWindow.getWorld().render3D(textures);
+                mainWindow.getWorld().render3D(renderManager);
             #endif
 
             // Draw 3D skeleton (if valid)

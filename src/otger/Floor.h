@@ -41,7 +41,7 @@ class Floor : public BasicObject
             motionState->setWorldTransform(transform);
         }
 
-        void render(TextureManager& textures) override
+        void render(RenderManager& textures) override
         {
             float transform[16];
             btTransform tf = rigidBody->getWorldTransform();

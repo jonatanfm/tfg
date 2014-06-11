@@ -5,6 +5,9 @@
 
 #include "BasicObject.h"
 
+extern const char SHADER_NORMALMAP_VERTEX[];
+extern const char SHADER_NORMALMAP_FRAGMENT[];
+
 class Cube : public BasicObject
 {
     public:
@@ -28,18 +31,36 @@ class Cube : public BasicObject
             
         }
 
-        void render(TextureManager& textures) override
+        void render(RenderManager& manager) override
         {
             float transform[16];
             btTransform tf = rigidBody->getWorldTransform();
             tf.getOpenGLMatrix(transform);
             
-            glColor3f(0.5f, 0.9f, 0.5f);
+            glColor3f(1.0f, 1.0f, 1.0f);
+            glEnable(GL_TEXTURE_2D);
+
+            manager.gl.glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, manager.getTexture("crate2.jpg"));
+
+            manager.gl.glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, manager.getTexture("crate2Normal.jpg"));
+
+            manager.gl.glActiveTexture(GL_TEXTURE0);
+
+            
+            //QGLShaderProgram* shader = manager.getShader(SHADER_NORMALMAP_VERTEX, SHADER_NORMALMAP_FRAGMENT);
+            //shader->bind();
+
             glPushMatrix();
                 glMultMatrixf(transform);
                 btVector3 he = ((btBoxShape*)shape)->getHalfExtentsWithoutMargin();
                 RenderUtils::drawCube(he.x(), he.y(), he.z());
             glPopMatrix();
+
+            //shader->release();
+
+            glDisable(GL_TEXTURE_2D);
         }
 };
 

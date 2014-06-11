@@ -5,12 +5,14 @@
 
 #include "globals.h"
 
+#include "Data.h"
+
 #include <QGLWidget>
 #include <QBasicTimer>
 
 #include <functional>
 
-class MainWindow;
+class Mode;
 class DataStream;
 
 // QT Widget that handles an OpenGL view.
@@ -23,7 +25,7 @@ class WidgetOpenGL : public QGLWidget
         // Function type for an overlay: a function that draws something over the view.
         typedef std::function< bool (WidgetOpenGL*) > Overlay;
 
-        explicit WidgetOpenGL(MainWindow& mainWindow, QWidget *parent = 0);
+        explicit WidgetOpenGL(QWidget *parent = 0);
         ~WidgetOpenGL();
 
         // Returns true if contains an overlay with the given name.
@@ -38,6 +40,17 @@ class WidgetOpenGL : public QGLWidget
         // Removes all the overlays.
         void removeAllOverlays();
 
+        // Set the pointer to access the current mode
+        void setModePointer(const Ptr<Mode>* ptr)
+        {
+            mode = ptr;
+        }
+
+        int heightForWidth(int w) const override
+        {
+            return (w * preferredHeight) / preferredWidth;
+        }
+
         // Convenience function that returns true if the widget is a instance of the templated classe.
         template<class T>
         inline bool is() const
@@ -51,7 +64,11 @@ class WidgetOpenGL : public QGLWidget
 
     protected:
 
-        MainWindow& mainWindow;
+        // Pointer to the current active mode (if any)
+        const Ptr<Mode>* mode;
+
+        // Preferred aspect ratio for the widget
+        int preferredWidth, preferredHeight;
 
         // Set the auto-update frequency, or 0 for disabled
         void setFPS(int fps)

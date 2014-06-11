@@ -5,6 +5,8 @@
 
 #include "globals.h"
 
+#include <QGLShaderProgram>
+
 // Define "glCheckError()" as a -function- to check if OpenGL has emitted any error, and if so, report it.
 #ifdef _DEBUG
     #define glCheckError() \
@@ -105,16 +107,24 @@ class RenderUtils
         static void drawSkeletons3D(const NUI_SKELETON_FRAME& frame);
 };
 
-class TextureManager
+
+// Manages loading and access to textures and shaders,
+// as well as access to OpenGL3+ functions.
+class RenderManager
 {
     private:
         std::map<std::string, Texture> textures;
 
+        std::map<const char*, QGLShaderProgram*> shaders;
+
     public:
 
-        TextureManager() { }
+        // OpenGL 3+ functions (not available by default in windows)
+        QGLFunctions& gl;
 
-        ~TextureManager()
+        RenderManager(QGLFunctions& functions) : gl(functions) { }
+
+        ~RenderManager()
         {
             clear();
         }
@@ -126,6 +136,12 @@ class TextureManager
                 glDeleteTextures(1, &it->second);
             }
             textures.clear();
+
+            for (auto it = shaders.begin(); it != shaders.end(); ++it)
+            {
+                delete it->second;
+            }
+            shaders.clear();
         }
 
         Texture getTexture(const std::string& file)
@@ -137,6 +153,32 @@ class TextureManager
             Texture tex = RenderUtils::createTexture(img);
             textures[file] = tex;
             return tex;
+        }
+
+        QGLShaderProgram* getShader(const char* vertex, const char* fragment)
+        {
+            auto it = shaders.find(vertex);
+            if (it != shaders.end()) return it->second;
+
+            QGLShaderProgram* shader = new QGLShaderProgram();
+
+            glCheckError();
+
+            shader->addShaderFromSourceCode(QGLShader::Vertex, QString(vertex));
+            shader->addShaderFromSourceCode(QGLShader::Fragment, QString(fragment));
+            shader->link();
+
+            glCheckError();
+
+            shader->bind();
+            shader->setUniformValue("colorMap", 0);
+            shader->setUniformValue("normalMap", 1);
+            shader->release();
+
+            glCheckError();
+
+            shaders[vertex] = shader;
+            return shader;
         }
 };
 

@@ -22,14 +22,13 @@ const float fovY = 43.0f;
 const float zNear = 0.01f, zFar = 20.0f;
 
 
-WidgetAugmentedView::WidgetAugmentedView(MainWindow& mainWindow) :
-    WidgetOpenGL(mainWindow),
-    depthCorrectionMethod(0)
+WidgetAugmentedView::WidgetAugmentedView(Ptr<DataStream> stream, World& world) :
+    world(world),
+    stream(stream),
+    renderManager(*this),
+    depthCorrectionMethod(1)
 {
-    auto& streams = mainWindow.getStreams();
-    if (streams.size() < 1) return;
-            
-    stream = streams[0];
+    resize(preferredWidth, preferredHeight);
 }
 
 WidgetAugmentedView::~WidgetAugmentedView()
@@ -43,13 +42,20 @@ void WidgetAugmentedView::initialize()
 
     qDebug() << "OpenGL version:" << QString((const char*) glGetString(GL_VERSION));
 
+    const float lightPos[] = { 0.0f, 0.5f, -0.4f, 0.0f };
+    const float ambient[] = { 0.4f, 0.4f, 0.4f, 1.0f };
+
+    glEnable(GL_LIGHT0);
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+
     glCheckError();
 
     textureColor = RenderUtils::createTexture(ColorFrame::WIDTH, ColorFrame::HEIGHT);
 
     glCheckError();
 
-    textureDepth = RenderUtils::createTexture(DepthFrame::WIDTH, DepthFrame::HEIGHT, GL_R16UI, GL_RED_INTEGER, GL_UNSIGNED_SHORT);
+    textureDepth = RenderUtils::createTexture(ColorFrame::WIDTH, ColorFrame::HEIGHT, GL_R16UI, GL_RED_INTEGER, GL_UNSIGNED_SHORT);
 
     glCheckError();
 
@@ -66,10 +72,10 @@ void WidgetAugmentedView::initialize()
     glCheckError();
 
     shader2D.bind();
-    shader2D.setUniformValue("Color", 0);
-    shader2D.setUniformValue("Depth", 1);
-    //shader2D.setUniformValue("zNear", static_cast<GLfloat>(zNear));
-    //shader2D.setUniformValue("zFar", static_cast<GLfloat>(zFar));
+    shader2D.setUniformValue("colorMap", 0);
+    shader2D.setUniformValue("depthMap", 1);
+    shader2D.setUniformValue("zNear", static_cast<GLfloat>(zNear));
+    shader2D.setUniformValue("zFar", static_cast<GLfloat>(zFar));
     shader2D.release();
 
     glCheckError();
@@ -81,7 +87,7 @@ void WidgetAugmentedView::initialize()
 
 void WidgetAugmentedView::nextDepthCorrectionMethod()
 {
-    depthCorrectionMethod = (depthCorrectionMethod + 1) % 3;
+    depthCorrectionMethod = (depthCorrectionMethod + 1) % 4;
 }
 
 bool WidgetAugmentedView::render()
@@ -92,10 +98,10 @@ bool WidgetAugmentedView::render()
 
     switch (depthCorrectionMethod)
     {
-        case 0: depthBuffer = depthFrame;  break;
-        case 1: DepthCorrector::correctDepthFrame_Naive(depthFrame, depthBuffer);  break; // DepthCorrector::correctDepthFrame()
-        case 2: break;
-        case 3: break;
+        case 0: depthBuffer = depthFrame; break;
+        case 1: DepthCorrector::correctDepthFrame_Naive(depthFrame, depthBuffer); break;
+        case 2: DepthCorrector::correctDepthFrame_Memory(depthFrame, depthBuffer); break;
+        case 3: DepthCorrector::correctDepthFrame_Rings(depthFrame, depthBuffer);  break;
     }
 
     // Setup perspective
@@ -133,27 +139,29 @@ bool WidgetAugmentedView::render()
 
         const NUI_DEPTH_IMAGE_POINT* src = mapping;
         GLushort* dest = textureDepthBuffer;
-        GLushort* end = textureDepthBuffer + DepthFrame::SIZE;
+        GLushort* end = textureDepthBuffer + ColorFrame::SIZE;
 
         #define SRC(i) static_cast<short>(static_cast<unsigned short>((src + i)->depth))
 
-        // Vectorized assuming DepthFrame::SIZE % 8 == 0
-        __m128i min = _mm_set1_epi16(static_cast<short>(DepthFrame::MIN_DEPTH));
-        __m128i max = _mm_set1_epi16(static_cast<short>(DepthFrame::MAX_DEPTH));
-        for (; dest < end; dest += 8, src += 8) {
-            __m128i v = _mm_set_epi16(SRC(7), SRC(6), SRC(5), SRC(4), SRC(3), SRC(2), SRC(1), SRC(0));
-            v = _mm_max_epu16(min, _mm_min_epu16(max, v));
-            _mm_store_si128((__m128i*)dest, v);
-        }
+        #ifndef NOT_VECTORIZED
+            // Vectorized assuming ColorFrame::SIZE % 8 == 0
+            __m128i min = _mm_set1_epi16(static_cast<short>(DepthFrame::MIN_DEPTH));
+            __m128i max = _mm_set1_epi16(static_cast<short>(DepthFrame::MAX_DEPTH));
+            for (; dest < end; dest += 8, src += 8) {
+                __m128i v = _mm_set_epi16(SRC(7), SRC(6), SRC(5), SRC(4), SRC(3), SRC(2), SRC(1), SRC(0));
+                v = _mm_max_epu16(min, _mm_min_epu16(max, v));
+                _mm_store_si128((__m128i*)dest, v);
+            }
+        #else
+            for (; dest < end; ++dest, ++src) {
+                unsigned short s = SRC(0);
+                s = (s > DepthFrame::MAX_DEPTH) ? DepthFrame::MAX_DEPTH : s;
+                s = (s < DepthFrame::MIN_DEPTH) ? DepthFrame::MIN_DEPTH : s;
+                *dest = static_cast<GLushort>(s);
+            }
+        #endif
 
-        /*for (; dest < end; ++dest, ++src) {
-            unsigned short s = SRC(0);
-            s = (s > MAX_DEPTH) ? MAX_DEPTH : s;
-            s = (s < MIN_DEPTH) ? MIN_DEPTH : s;
-            *dest = static_cast<GLushort>(s);
-        }*/
-
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, DepthFrame::WIDTH, DepthFrame::HEIGHT,
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ColorFrame::WIDTH, ColorFrame::HEIGHT,
             GL_RED_INTEGER, GL_UNSIGNED_SHORT, (GLvoid*)textureDepthBuffer);
     }
 
@@ -176,13 +184,17 @@ bool WidgetAugmentedView::render()
     // A test plane
     /*glBegin(GL_TRIANGLE_STRIP);
         glVertex3f(-0.5f, -0.5f, 0.5f);
-        glVertex3f(-0.5f, 0.5f, 2.0f);
-        glVertex3f(0.5f, -0.5f, 2.0f);
-        glVertex3f(0.5f, 0.5f, 3.5f);
+        glVertex3f(-0.5f, 0.5f, 3.0f);
+        glVertex3f(0.5f, -0.5f, 3.0f);
+        glVertex3f(0.5f, 0.5f, 5.5f);
     glEnd();*/
 
+    glEnable(GL_LIGHTING);
+
     // Draw the objects
-    mainWindow.getWorld().render(textures);
+    world.render(renderManager);
+
+    glDisable(GL_LIGHTING);
 
     return true;
 }
@@ -222,17 +234,17 @@ void WidgetAugmentedView::spawnObject()
 
 void WidgetAugmentedView::spawnCube()
 {
-    mainWindow.getWorld().addObject(new Cube(0, 5.0f, 2.0f, 0.5f, 1.0f));
+    world.addObject(new Cube(0, 5.0f, 2.0f, 0.3f, 1.0f));
 }
 
 void WidgetAugmentedView::spawnBall()
 {
-    mainWindow.getWorld().addObject(new Ball(0, 5.0f, 2.0f, 0.4f, 1.0f));
+    world.addObject(new Ball(0, 5.0f, 2.0f, 0.1f, 1.0f));
 }
 
 void WidgetAugmentedView::clearObjects()
 {
-    mainWindow.getWorld().clearObjects();
+    world.clearObjects();
 }
 
 void WidgetAugmentedView::changeDepthCorrectionMethod()

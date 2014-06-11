@@ -1,9 +1,9 @@
 #version 130 compatibility
 
-smooth out vec2 TexCoord;
+smooth out vec2 texCoord;
 
 void main()
 {
   gl_Position = gl_Vertex;
-  TexCoord = gl_MultiTexCoord0.st;
+  texCoord = gl_MultiTexCoord0.st;
 }

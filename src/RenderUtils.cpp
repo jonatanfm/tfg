@@ -2,6 +2,8 @@
 
 #include "globals.h"
 
+#include "Data.h"
+
 Texture RenderUtils::createTexture(int width, int height, GLint internalFormat, GLenum format, GLenum type)
 {
     GLuint tex;
@@ -80,10 +82,9 @@ void RenderUtils::drawPoint(const Point2D& p, float radius)
 
 void RenderUtils::drawPoint(const Point3D& p, float radius)
 {
-	glPointSize(radius);
+    glPointSize(radius);
     glBegin(GL_POINTS);
         glVertex3f(p.x, p.y, p.z);
-        //glVertex3f(p.x, p.y, p.z);
     glEnd();
 }
 
@@ -176,7 +177,7 @@ Point3D skeletonToDepthFrame(const Vector4& skelPoint)
 {
     LONG x, y;
     USHORT depth;
-    NuiTransformSkeletonToDepthImage(skelPoint, &x, &y, &depth, NUI_IMAGE_RESOLUTION_640x480);
+    NuiTransformSkeletonToDepthImage(skelPoint, &x, &y, &depth, DepthFrame::RESOLUTION);
     //return Point3D(float(x * 640) / 640, float(y * 480) / 480, 0.0f);
     return Point3D(float(x), float(y), 0.0f);
 }
@@ -185,11 +186,11 @@ Point3D skeletonToColorFrame(const Vector4& skelPoint)
 {
     LONG x, y;
     USHORT depth;
-    NuiTransformSkeletonToDepthImage(skelPoint, &x, &y, &depth, NUI_IMAGE_RESOLUTION_640x480);
+    NuiTransformSkeletonToDepthImage(skelPoint, &x, &y, &depth, DepthFrame::RESOLUTION);
 
     NuiImageGetColorPixelCoordinatesFromDepthPixelAtResolution(
-        NUI_IMAGE_RESOLUTION_640x480,
-        NUI_IMAGE_RESOLUTION_640x480,
+        ColorFrame::RESOLUTION,
+        DepthFrame::RESOLUTION,
         nullptr,
         x,
         y,
@@ -224,7 +225,7 @@ void RenderUtils::drawBone(const NUI_SKELETON_DATA& skel, Point3D* points, NUI_S
     if (s0 == NUI_SKELETON_POSITION_INFERRED &&
         s1 == NUI_SKELETON_POSITION_INFERRED)
     {
-		
+        
         return;
     }
 
@@ -288,11 +289,10 @@ void RenderUtils::drawSkeleton(const NUI_SKELETON_DATA& skel, SkeletonPointConve
         else if (state == NUI_SKELETON_POSITION_INFERRED) {
             RenderUtils::setColor(COLOR_BONE_INFERRED);
         }
-		else if (state == NUI_SKELETON_POSITION_NOT_TRACKED) {
-			qDebug()<<"hola"<<endl;
+        else if (state == NUI_SKELETON_POSITION_NOT_TRACKED) {
             RenderUtils::setColor(COLOR_BONE_TRACKED);
         }
-		
+        
         RenderUtils::drawPoint(points[i], 3.0f);
     }
 }

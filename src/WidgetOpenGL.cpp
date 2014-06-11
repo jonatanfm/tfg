@@ -2,15 +2,21 @@
 
 #include "RenderUtils.h"
 
-#include "MainWindow.h"
+#include "Mode.h"
 
-WidgetOpenGL::WidgetOpenGL(MainWindow& mainWindow, QWidget *parent) :
+WidgetOpenGL::WidgetOpenGL(QWidget *parent) :
     QGLWidget(parent),
-    mainWindow(mainWindow),
+    mode(nullptr),
+    preferredWidth(ColorFrame::WIDTH),
+    preferredHeight(ColorFrame::HEIGHT),
     fps(0)
 {
     setMinimumSize(320, 240);
-    setMaximumSize(640, 480);
+    //setMaximumSize(640, 480);
+
+    /*QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    policy.setHeightForWidth(true);
+    setSizePolicy(policy);*/
 
     connect(this, SIGNAL(triggerRefresh()), this, SLOT(updateGL()));
 }
@@ -39,8 +45,19 @@ void WidgetOpenGL::initializeGL()
 
 void WidgetOpenGL::resizeGL(int w, int h)
 {
+    int x = 0, y = 0;
     //makeCurrent();
-    glViewport(0, 0, w, h);
+    int targetH = (w * preferredHeight) / preferredWidth;
+    if (h < targetH) {
+        int targetW = (h * preferredWidth) / preferredHeight;
+        x = (w - targetW) / 2;
+        w = targetW;
+    }
+    else {
+        y = (h - targetH) / 2;
+        h = targetH;
+    }
+    glViewport(x, y, w, h);
 }
 
 void WidgetOpenGL::paintGL()
@@ -73,20 +90,18 @@ void WidgetOpenGL::timerEvent(QTimerEvent*)
 
 void WidgetOpenGL::mousePressEvent(QMouseEvent* ev)
 {
-    Mode* mode = mainWindow.getMode();
-    if (mode != nullptr) mode->mousePressEvent(this, ev);
+    if (mode != nullptr && mode->obj != nullptr) mode->obj->mousePressEvent(this, ev);
 }
 
 void WidgetOpenGL::mouseReleaseEvent(QMouseEvent* ev)
 {
-    Mode* mode = mainWindow.getMode();
-    if (mode != nullptr) mode->mouseReleaseEvent(this, ev);
+
+    if (mode != nullptr && mode->obj != nullptr) mode->obj->mouseReleaseEvent(this, ev);
 }
 
 void WidgetOpenGL::moveEvent(QMoveEvent* ev)
 {
-    Mode* mode = mainWindow.getMode();
-    if (mode != nullptr) mode->moveEvent(this, ev);
+    if (mode != nullptr && mode->obj != nullptr) mode->obj->moveEvent(this, ev);
 }
 
 

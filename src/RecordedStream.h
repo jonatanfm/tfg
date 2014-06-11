@@ -34,7 +34,7 @@ class RecordedStream : public AsyncStream
             advancing = true;
         }
 
-		
+        
         
         // Reads the complete trajectory of the skeleton
         bool getSkeletonTrajectory(const std::vector<NUI_SKELETON_POSITION_INDEX>& joints, OUT SkeletonTrajectory& trajectory)
@@ -81,7 +81,7 @@ class RecordedStream : public AsyncStream
             return !skeletonFile.empty();
         }
 
-		bool hasFinished()
+        bool hasFinished()
         {
             return skeletonReader.hasFinished();
         }

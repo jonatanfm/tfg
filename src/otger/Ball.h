@@ -28,7 +28,7 @@ class Ball : public BasicObject
             
         }
 
-        void render(TextureManager& textures) override
+        void render(RenderManager& textures) override
         {
             float transform[16];
             btTransform tf = rigidBody->getWorldTransform();

@@ -61,7 +61,7 @@ class KinectStream : public AsyncStream
         }
 
         // Returns, for all points in a color frame, the corresponding depth values.
-        bool mapColorFrameToDepthFrame(const DepthFrame& frame, OUT NUI_DEPTH_IMAGE_POINT* mapped);
+        bool mapColorFrameToDepthFrame(const DepthFrame& frame, OUT NUI_DEPTH_IMAGE_POINT mapped[ColorFrame::SIZE]);
 
     private:
         INuiSensor* sensor; // The internal sensor object
@@ -78,7 +78,7 @@ class KinectStream : public AsyncStream
 
         // Input frame buffers
 
-        ColorFrame colorBuffer;
+        ALIGN(16) ColorFrame colorBuffer;
         DepthFrame depthBuffer;
         SkeletonFrame skeletonBuffer;
 

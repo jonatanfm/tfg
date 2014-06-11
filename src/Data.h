@@ -72,14 +72,13 @@ struct FrameNum
 // A Kinect color frame.
 struct ColorFrame
 {
-    static const int WIDTH = 640;
-    static const int HEIGHT = 480;
+    static const int WIDTH = 640, HEIGHT = 480;
 
     static const int SIZE = WIDTH * HEIGHT;
     static const unsigned int BYTES = SIZE * sizeof(ColorPixel);  // Size in bytes of a Color frame
 
-	typedef std::function< bool (ColorFrame*) > Overlay;
-	std::vector< std::pair<std::string, Overlay> > overlays;
+    static const NUI_IMAGE_RESOLUTION RESOLUTION = NUI_IMAGE_RESOLUTION_640x480;
+
 
     ColorPixel pixels[SIZE];
 
@@ -104,19 +103,20 @@ struct ColorFrame
         return pixels[y * WIDTH + x];
     }
 
-	
-
 };
 
 
 // A Kinect depth frame.
 struct DepthFrame
 {
-    static const int WIDTH = 640;
-    static const int HEIGHT = 480;
+    static const int WIDTH = 640, HEIGHT = 480;
+
+    //static const int WIDTH = 320, HEIGHT = 240;
 
     static const int SIZE = WIDTH * HEIGHT;
     static const unsigned int BYTES = SIZE * sizeof(DepthPixel);  // Size in bytes of a Depth frame
+
+    static const NUI_IMAGE_RESOLUTION RESOLUTION = (WIDTH == 320 ? NUI_IMAGE_RESOLUTION_320x240 : NUI_IMAGE_RESOLUTION_640x480);
 
     // Minimum reliable depth value
     static const int MIN_DEPTH = NUI_IMAGE_DEPTH_MINIMUM >> NUI_IMAGE_PLAYER_INDEX_SHIFT;

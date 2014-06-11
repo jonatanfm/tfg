@@ -3,7 +3,8 @@
 
 void CALLBACK deviceStatusCallback(HRESULT hrStatus, const OLECHAR* instanceName, const OLECHAR* /*uniqueDeviceName*/, void* pUserData)
 {
-    ((KinectManager*)pUserData)->deviceStatusChanged(instanceName, SUCCEEDED(hrStatus));
+    KinectManager& manager = *((KinectManager*)pUserData);
+    emit manager.deviceStatusChange(QString::fromWCharArray(instanceName), static_cast<long>(hrStatus));
 }
 
 KinectManager::KinectManager()
@@ -13,10 +14,8 @@ KinectManager::KinectManager()
     NuiSetDeviceStatusCallback(&deviceStatusCallback, this);
 
     int numSensors;
-    NuiGetSensorCount(&numSensors);
-
-    if (numSensors < 0) {
-        qDebug("ERROR ASKING THE KINECT COUNT!", numSensors);
+    if (NuiGetSensorCount(&numSensors) != S_OK || numSensors < 0) {
+        qDebug("Error fetching the Kinect count!", numSensors);
     }
     else {
         qDebug("Found %d sensor(s)", numSensors);
@@ -29,38 +28,41 @@ KinectManager::KinectManager()
             }
         }
     }
+
+    QObject::connect(this, SIGNAL(deviceStatusChange(QString, long)), this, SLOT(deviceStatusChanged(QString, long)));
 }
 
 KinectManager::~KinectManager()
 {
-    /*for (unsigned int i = 0; i < kinects.size(); ++i) {
-        if (kinects[i] != nullptr) kinects[i]->release();
-    }*/
+    NuiSetDeviceStatusCallback(nullptr, nullptr);
 }
 
-void KinectManager::deviceStatusChanged(const OLECHAR* deviceId, bool connected)
+void KinectManager::deviceStatusChanged(QString deviceId, long status)
 {
-    if (connected) {
+    HRESULT hrStatus = static_cast<HRESULT>(status);
+    if (hrStatus == S_OK) { // Connected
         qDebug() << "Connected Kinect: " << deviceId;
-        for (unsigned int i = 0; i < kinects.size(); ++i) {
-            if (kinects[i] != nullptr && kinects[i]->sensor != nullptr) {
-                OLECHAR* id = kinects[i]->sensor->NuiDeviceConnectionId();
-                if (wcscmp(id, deviceId) == 0) {
-                    // TODO: clear threads errors
-                    return;
-                }
+        size_t emptyIndex = std::string::npos;
+        for (size_t i = 0; i < kinects.size(); ++i) {
+            if (kinects[i] == nullptr) {
+                if (emptyIndex == std::string::npos) emptyIndex = i;
+            }
+            else if (kinects[i]->sensor != nullptr) {
+                QString id = QString::fromWCharArray(kinects[i]->sensor->NuiDeviceConnectionId());
+                if (deviceId == id) return;
             }
         }
         // If not found, add it
-        kinects.push_back(Ptr<KinectStream>(new KinectStream()));
-        kinects.back()->initializeById(deviceId);
+        if (emptyIndex == std::string::npos) kinects.push_back(nullptr);
+        kinects[emptyIndex] = Ptr<KinectStream>(new KinectStream());
+        kinects[emptyIndex]->initializeById((const OLECHAR*)deviceId.constData());
     }
-    else { // Disconnected
+    else if (hrStatus == E_NUI_NOTCONNECTED) { // Disconnected
         qDebug() << "Disconnected Kinect: " << deviceId;
-        for (unsigned int i = 0; i < kinects.size(); ++i) {
+        for (size_t i = 0; i < kinects.size(); ++i) {
             if (kinects[i] != nullptr && kinects[i]->sensor != nullptr) {
-                OLECHAR* id = kinects[i]->sensor->NuiDeviceConnectionId();
-                if (wcscmp(id, deviceId) == 0) {
+                QString id = QString::fromWCharArray(kinects[i]->sensor->NuiDeviceConnectionId());
+                if (deviceId == id) {
                     kinects[i] = nullptr;
                     kinects.erase(kinects.begin() + i);
                     --i;
@@ -68,4 +70,5 @@ void KinectManager::deviceStatusChanged(const OLECHAR* deviceId, bool connected)
             }
         }      
     }
+    //else if (hrStatus == S_NUI_INITIALIZING) {} // Initializing
 }

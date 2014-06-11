@@ -1,24 +1,46 @@
 //
-// Includes common headers and declares global functions / defines.
+// Precompiled header
+//   Includes common headers and declares global variables and functions 
+//   that rarely change, in order to speed up the compilation process.
 //
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
 #pragma once
 
+
+// Memory leaks detection? (only in debug)
+#ifdef _DEBUG
+    //#define REPORT_MEMORY_LEAKS
+#endif
+
+
+// Visual Studio specific
 #ifdef _MSC_VER
 
-    // Disable "Unreferenced formal parameter" warning
-    #pragma warning(disable : 4100)
+    // Set variable/struct alignment
+    #define ALIGN(bytes) __declspec(align(bytes))
+    
+    #ifdef REPORT_MEMORY_LEAKS
+        #define _CRTDBG_MAP_ALLOC
+        #include <cstdlib>
+        #include <crtdbg.h>
+
+        // Needed due to QT declaring a member function named "realloc"
+        #undef realloc
+    #endif
 
 #endif
+
 
 
 //
 // C/C++
 //
 
+#include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <cstdint>
 #include <cmath>
 
@@ -54,6 +76,7 @@
 #endif
 
 
+
 //
 // OpenCV
 //
@@ -70,6 +93,7 @@
 //
 
 #include <QDebug>
+
 
 
 //
@@ -98,7 +122,7 @@ using std::unique_ptr;
 
 
 
-// Defines for better readability
+// Defines used for better readability
 
 // OUT: indicates that a function argument/parameter is to be changed to output a result.
 #ifndef OUT
@@ -123,6 +147,7 @@ using std::unique_ptr;
 #endif
 
 
+
 // Common constants
 
 const float PI = 3.14159265358979323846f;
@@ -131,6 +156,11 @@ const float DEG2RAD = PI / 180.0f;
 const float RAD2DEG = 180.0f / PI;
 
 
+#ifdef REPORT_MEMORY_LEAKS
+    // Redefine "new" in order to report where it is executed
+    #define DEBUG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
+    #define new DEBUG_NEW
 #endif
 
 
+#endif

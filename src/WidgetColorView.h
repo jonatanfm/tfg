@@ -20,8 +20,7 @@ class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
         ColorFrame frame;
 
     public:
-        WidgetColorView(MainWindow& mainWindow, Ptr<DataStream> stream) :
-            WidgetOpenGL(mainWindow),
+        WidgetColorView(Ptr<DataStream> stream) :
             stream(stream)
         {
             makeCurrent();

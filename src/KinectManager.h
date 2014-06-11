@@ -7,8 +7,10 @@
 #include "KinectStream.h"
 
 // Manages the connected kinects and handles connection/disconnection events.
-class KinectManager
+class KinectManager : public QObject
 {
+    Q_OBJECT
+
     // Static callback when a device is connected/disconnected
     friend void CALLBACK deviceStatusCallback(HRESULT, const OLECHAR*, const OLECHAR*, void*);
 
@@ -38,8 +40,14 @@ class KinectManager
         // May contain null values (e.g. one has been disconnected)
         std::vector< Ptr<KinectStream> > kinects;
 
+    private slots:
+
         // Callback when a device is connected/disconnected
-        void deviceStatusChanged(const OLECHAR* deviceId, bool connected);
+        void deviceStatusChanged(QString deviceId, long status);
+
+    signals:
+
+        void deviceStatusChange(QString deviceId, long status);
 
 };
 

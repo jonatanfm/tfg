@@ -23,6 +23,8 @@ class WidgetAugmentedView : public WidgetOpenGL, protected QGLFunctions, public 
 
         Ptr<DataStream> stream; // The stream that provides color/depth/skeleton data.
 
+        World& world; // The virtual world
+
         Texture textureColor; // Color image texture
         Texture textureDepth; // Depth data texture
 
@@ -32,23 +34,21 @@ class WidgetAugmentedView : public WidgetOpenGL, protected QGLFunctions, public 
         DepthFrame depthBuffer; // Temporary depth buffer (for correction)
 
         // Output buffer for depth-to-color frame mapping.
-        __declspec(align(16))
-        NUI_DEPTH_IMAGE_POINT mapping[DepthFrame::SIZE];
+        ALIGN(16) NUI_DEPTH_IMAGE_POINT mapping[ColorFrame::SIZE];
 
         // Buffer for updatig the depth texture contents.
-        __declspec(align(16))
-        GLushort textureDepthBuffer[DepthFrame::SIZE];
+        ALIGN(16) GLushort textureDepthBuffer[ColorFrame::SIZE];
 
-        // Textures cache
-        TextureManager textures;
+        // Textures and shaders cache
+        RenderManager renderManager;
 
         int depthCorrectionMethod;
 
         // Shaders
-        QGLShaderProgram shaderDefault, shader2D;
+        QGLShaderProgram shaderDefault, shader2D, shaderNormalMap;
 
     public:
-        WidgetAugmentedView(MainWindow& mainWindow);
+        WidgetAugmentedView(Ptr<DataStream> stream, World& world);
 
         ~WidgetAugmentedView();
 

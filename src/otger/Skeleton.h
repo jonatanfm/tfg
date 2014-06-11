@@ -13,6 +13,13 @@ class Skeleton : public Object
         static const int NUM_BONES = 19;
 
     private:
+        struct Head
+        {
+            btSphereShape* shape;
+            btRigidBody* rigidBody;
+            KinematicMotionState* motionState;
+        } head;
+
         struct Bone
         {
             btCapsuleShape* shape;
@@ -31,13 +38,14 @@ class Skeleton : public Object
         
         void update(const NUI_SKELETON_FRAME& frame);
 
-        void render(TextureManager& textures) override;
+        void render(RenderManager& textures) override;
 
         void addToWorld(btDynamicsWorld* world) override
         {
             for (int i = 0; i < NUM_BONES; ++i) {
                 world->addRigidBody(bones[i].rigidBody);
             }
+            world->addRigidBody(head.rigidBody);
         }
 
         void removeFromWorld(btDynamicsWorld* world) override
@@ -45,6 +53,7 @@ class Skeleton : public Object
             for (int i = 0; i < NUM_BONES; ++i) {
                 world->removeRigidBody(bones[i].rigidBody);
             }
+            world->removeRigidBody(head.rigidBody);
         }
 };
 

@@ -14,10 +14,10 @@ class Object
         virtual ~Object() { }
 
         // Render for projecting into 2D
-        virtual void render(TextureManager& textures) = 0;
+        virtual void render(RenderManager& textures) = 0;
 
         // Render for debugging into a 3D scene
-        virtual void render3D(TextureManager& textures)
+        virtual void render3D(RenderManager& textures)
         {
             render(textures);
         }

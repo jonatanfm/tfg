@@ -63,7 +63,6 @@ SOURCES += \
     jonatan/SkeletonStudy.cpp
 
 HEADERS += \
-    globals.h \
     Utils.h \
     RenderUtils.h \
     Data.h \
@@ -91,6 +90,8 @@ HEADERS += \
     otger/DepthCorrector.h \
     jonatan/CaptureSkeleton.h \
     jonatan/SkeletonStudy.h
+
+PRECOMPILED_HEADER = globals.h
 
 FORMS += WidgetRecorder.ui
 
@@ -122,9 +123,9 @@ exists(../config.pro) {
     LIBS += -L$$(BULLET_DIR)/lib
         
     CONFIG(debug, debug|release) {
-        LIBS += -llinearmath_vs2010_debug -lbulletcollision_vs2010_debug -lbulletdynamics_vs2010_debug
+        LIBS += -llinearmath_vs2010_debug -lbulletcollision_vs2010_debug -lbulletdynamics_vs2010_debug -lBulletSoftBody_vs2010_debug
     } else {
-        LIBS += -llinearmath_vs2010 -lbulletcollision_vs2010 -lbulletdynamics_vs2010
+        LIBS += -llinearmath_vs2010 -lbulletcollision_vs2010 -lbulletdynamics_vs2010 -lBulletSoftBody_vs2010
     }
     
     DEFINES += HAS_BULLET
@@ -149,5 +150,11 @@ UI_DIR = $$OBJECTS_DIR
 RESOURCES = ../res/resources.qrc
 
 # Windows specific
-win32:RC_FILE = ../res/resource.rc
-win32:QMAKE_CXXFLAGS += -D_CRT_SECURE_NO_WARNINGS
+win32 {
+    RC_FILE = ../res/resource.rc
+    QMAKE_CXXFLAGS += -D_CRT_SECURE_NO_WARNINGS
+    
+    # Disable "Unreferenced formal parameter" warning
+    QMAKE_CXXFLAGS_DEBUG += -wd4100
+    QMAKE_CXXFLAGS_RELEASE += -wd4100
+}

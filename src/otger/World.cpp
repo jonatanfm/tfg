@@ -43,6 +43,7 @@ World::World() :
     solver = new btSequentialImpulseConstraintSolver;
     
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+    //dynamicsWorld = new btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
     
     dynamicsWorld->setGravity(btVector3(0, -0.3f /*-10*/, 0));
     //dynamicsWorld->setDebugDrawer(new GLDebugDrawer());
@@ -70,7 +71,10 @@ World::~World()
 
     clearObjects();
 
+    skeleton->removeFromWorld(dynamicsWorld);
     delete skeleton;
+
+    floor->removeFromWorld(dynamicsWorld);
     delete floor;
 
     delete dynamicsWorld;
@@ -134,7 +138,7 @@ void World::runIteration()
     //qDebug() << "sphere height: " << trans.getOrigin().getY() << std::endl;
 }
 
-void World::render(TextureManager& textures)
+void World::render(RenderManager& textures)
 {
     mutex.lock();
         for (int i = 0; i < int(objects.size()); ++i) {
@@ -143,7 +147,7 @@ void World::render(TextureManager& textures)
     mutex.unlock();
 }
 
-void World::render3D(TextureManager& textures)
+void World::render3D(RenderManager& textures)
 {
     mutex.lock();
         //dynamicsWorld->debugDrawWorld();

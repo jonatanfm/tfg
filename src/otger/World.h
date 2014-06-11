@@ -89,10 +89,10 @@ class World : private QThread
         ~World();
         
         // Renders the world projected to 2D
-        void render(TextureManager& textures);
+        void render(RenderManager& textures);
 
         // Renders the world for debugging in a 3D scene
-        void render3D(TextureManager& textures);
+        void render3D(RenderManager& textures);
 
         // Runs a single iteration of the simulation
         void runIteration();

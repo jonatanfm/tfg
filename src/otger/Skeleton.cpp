@@ -37,6 +37,19 @@ const NUI_SKELETON_POSITION_INDEX BONES[][2] =
 
 Skeleton::Skeleton()
 {
+    // Head
+    {
+        head.shape = new btSphereShape(0.08f);
+
+        head.motionState = new KinematicMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 0, 0)));
+
+        btRigidBody::btRigidBodyConstructionInfo rbci(0, head.motionState, head.shape, btVector3(0, 0, 0));
+        head.rigidBody = new btRigidBody(rbci);
+        head.rigidBody->setCollisionFlags(head.rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+        head.rigidBody->setActivationState(DISABLE_DEACTIVATION);
+    }
+
+    // Bones
     for (int i = 0; i < NUM_BONES; ++i) {
         Bone& b = bones[i];
 
@@ -53,7 +66,15 @@ Skeleton::Skeleton()
 
 Skeleton::~Skeleton()
 {
+    delete head.rigidBody;
+    delete head.motionState;
+    delete head.shape;
 
+    for (int i = 0; i < NUM_BONES; ++i) {
+        delete bones[i].rigidBody;
+        delete bones[i].motionState;
+        delete bones[i].shape;
+    }
 }
 
 int Skeleton::findSkeleton(const NUI_SKELETON_FRAME& frame)
@@ -71,10 +92,19 @@ void Skeleton::update(const NUI_SKELETON_FRAME& frame)
     int idx = findSkeleton(frame);
     if (idx == -1) {
         for (int i = 0; i < NUM_BONES; ++i) bones[i].rigidBody->setActivationState(DISABLE_SIMULATION);
+        head.rigidBody->setActivationState(DISABLE_SIMULATION);
         return;
     }
 
     const NUI_SKELETON_DATA& data = frame.SkeletonData[idx];
+
+    if (data.eSkeletonPositionTrackingState[NUI_SKELETON_POSITION_HEAD] != NUI_SKELETON_POSITION_NOT_TRACKED) {
+        const Vector4& u0 = data.SkeletonPositions[NUI_SKELETON_POSITION_HEAD];
+        const Vector4& v0 = data.SkeletonPositions[NUI_SKELETON_POSITION_SHOULDER_CENTER];
+        btVector3 u(-u0.x, u0.y, u0.z), v(-v0.x, v0.y, v0.z);
+        head.motionState->setWorldTransform(btTransform(btQuaternion(0, 0, 0, 1), (u + u + v) / 3));
+        head.rigidBody->setActivationState(DISABLE_DEACTIVATION);
+    }
 
     for (int i = 0; i < NUM_BONES; ++i) {
         NUI_SKELETON_POSITION_TRACKING_STATE
@@ -114,10 +144,11 @@ void Skeleton::update(const NUI_SKELETON_FRAME& frame)
     }
 }
 
-void Skeleton::render(TextureManager& textures)
+void Skeleton::render(RenderManager& textures)
 {
     GLUquadric* q = gluNewQuadric();
     float transform[16];
+
     for (int i = 0; i < NUM_BONES; ++i) {
         if (bones[i].rigidBody->getActivationState() == DISABLE_SIMULATION) continue;
         btScalar length = bones[i].shape->getLocalScaling().getY();
@@ -129,5 +160,15 @@ void Skeleton::render(TextureManager& textures)
             gluCylinder(q, 0.02, 0.02, length, 12, 1);
         glPopMatrix();
     }
+    
+    if (head.rigidBody->getActivationState() != DISABLE_SIMULATION) {
+        btTransform tf = head.rigidBody->getWorldTransform();
+        tf.getOpenGLMatrix(transform);
+        glPushMatrix();
+            glMultMatrixf(transform);
+            gluSphere(q, head.shape->getRadius(), 16, 16);
+        glPopMatrix();
+    }
+
     gluDeleteQuadric(q);
 }
