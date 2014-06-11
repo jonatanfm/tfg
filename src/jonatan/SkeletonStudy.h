@@ -43,11 +43,17 @@ private:
 	vector<const char*> skelName;
 	vector<const char*> jointName;
 
-	vector<Point> punts;
+	bool done;
 	vector<float> aver;
 	vector<float> desv;
 	float tot;
-	
+	int tot2;
+
+	vector<vector<pair<Vector4,int> > > punts;
+	vector<vector<pair<Vector4,int> > > puntsCorrected;
+
+	bool redo;
+
 	AsyncStream* s;
 	RecordedStream* rec;
 
@@ -67,12 +73,14 @@ public:
         {
 			
 			tot=0;
+			tot2=0;
 
-			loadBonesData(bones);
+			if(type==1 || type==3)	loadBonesData(bones);
 
 			createSkeletonNames();
 			createJointNames();
-
+			redo=false;
+			done=false;
 			s = dynamic_cast<AsyncStream*>(base.obj);
 			rec = dynamic_cast<RecordedStream*>(s);
 			
@@ -85,7 +93,7 @@ public:
 			
 		std::string getName() const override
         {
-            return "Traking Skeleton in time";
+            return "Tracking Skeleton in time";
         }
 
 		bool isOpened() const override
@@ -123,6 +131,7 @@ public:
 				}
 			else
 				for (int i=0; i<20;i++){
+					
 					sheettmp.push_back(booktmp->addSheet(jointName[i]));
 					sheettmp[i]->setCol(2, 2, 30);
 					sheettmp[i]->setCol(2, 3, 30);
@@ -155,9 +164,26 @@ public:
 					if(rec->hasFinished()) stopping=true;
 				}
 				else if (type==2) {
-					if(rec->hasFinished()) rec->reset();
-					if ( base->getSkeletonFrame(skeleton) ) 
-							trackSkeletonPositions(skeleton.frame);
+					if(rec->hasFinished() && !redo){
+						solveData();
+						redo=true;
+						rec->reset();
+					}
+					
+
+					if ( base->getSkeletonFrame(skeleton)) 
+							trackSkeletonPositions(skeleton.frame,skel);
+				}
+				else if (type==3) {
+					if(rec->hasFinished() && !redo){
+						solveData();
+						redo=true;
+						rec->reset();
+					}
+					
+
+					if ( base->getSkeletonFrame(skeleton)) 
+							trackSkeletonPositionsChanged(skeleton.frame,skel);
 				}
 				
 				
@@ -192,10 +218,96 @@ public:
 
 		void trackImprovedSkeleton(const NUI_SKELETON_FRAME& frame,SkeletonFrame* frame2);
 
-		void trackSkeletonPositions(const NUI_SKELETON_FRAME& frame);
+		void trackSkeletonPositions(const NUI_SKELETON_FRAME& frame,SkeletonFrame* frame2);
+
+		void trackSkeletonPositionsChanged(const NUI_SKELETON_FRAME& frame,SkeletonFrame* frame2);
 
 		void saveBoneLength(const Vector4& skel1,const Vector4& skel2,int pos);
 
+		void solveData(){
+			int f,s;
+			Vector4 p0,p1,p2,p3;
+			Vector4 p01,p31;
+			pair<Vector4,int> res;
+			bool find=false;
+			vector<pair<Vector4,int> > as;
+			for(int k=0;k<20;k++){
+				as.push_back(punts[k][0]);
+				puntsCorrected.push_back(as);
+								
+				for(int i=0;i<punts[k].size();i++){
+					if(i==0){
+					}
+					else{//check final sin tracked
+						if(punts[k][i].second!=2 && !find){
+							
+							find=true;
+							f=i-1;
+						}
+						else if(punts[k][i].second==2 && find){
+							
+							find=false;
+							s=i;
+							p0.x=punts[k][f].first.x;p0.y=punts[k][f].first.y;p0.z=punts[k][f].first.z;
+							p3.x=punts[k][s].first.x;p3.y=punts[k][s].first.y;p3.z=punts[k][s].first.z;
+
+							p01.x=punts[k][f-1].first.x;p01.y=punts[k][f-1].first.y;p01.z=punts[k][f-1].first.z;
+							p31.x=punts[k][s+1].first.x;p31.y=punts[k][s+1].first.y;p31.z=punts[k][s+1].first.z;
+							p01.x=p0.x-p01.x;p01.y=p0.y-p01.y;p01.z=p0.z-p01.z;
+							p31.x=p3.x-p31.x;p31.y=p3.y-p31.y;p31.z=p3.z-p31.z;
+							
+							
+
+							float framerate=1;
+							p1.x=p0.x+(framerate*p01.x);p1.y=p0.y+(framerate*p01.y);p1.z=p0.z+(framerate*p01.z);
+							p2.x=p3.x-(framerate*p31.x);p2.y=p3.y-(framerate*p31.y);p2.z=p3.z-(framerate*p31.z);
+							float d=s-f;
+
+							float u=1.0/d;
+							float m;
+							
+
+							for(int a=1;a<(s-f);a++){
+								m=u*a;
+								res.first.x = ( p0.x*pow((1-m),3) ) + (3 * p1.x *m* pow((1-m),2) ) + (3* p2.x * pow(m,2) * (1-m) ) + (p3.x*pow(m,3) );
+								res.first.y = ( p0.y*pow((1-m),3) ) + (3 * p1.y *m* pow((1-m),2) ) + (3* p2.y * pow(m,2) * (1-m) ) + (p3.y*pow(m,3) );
+								res.first.z = ( p0.z*pow((1-m),3) ) + (3 * p1.z *m* pow((1-m),2) ) + (3* p2.z * pow(m,2) * (1-m) ) + (p3.z*pow(m,3) );
+								res.second=2;
+								
+								puntsCorrected[k].push_back(res);
+							}
+							
+							
+							puntsCorrected[k].push_back(punts[k][i]);
+						}
+						else if(punts[k][i].second==2){
+							puntsCorrected[k].push_back(punts[k][i]);
+						}
+					}
+				}
+			}
+		}
+
+		bool checkBackNextPoints(int k, int l){
+			Point a=Point(0,0,0);
+			for(int i = l-15;i<(l+15);i++){
+				if(i!=l){
+					if(punts[k][i].second!=2)return false;
+					else{
+						a.x+=punts[k][i].first.x;
+						a.y+=punts[k][i].first.y;
+						a.z+=punts[k][i].first.z;
+					}
+				}
+			}
+			pair<Vector4,int> s;
+			s.first.x=a.x/30;
+			s.first.y=a.y/30;
+			s.first.z=a.z/30;
+			s.second=2;
+			puntsCorrected[k].push_back(s);
+			return true;
+		}
 
 		void createSkeletonNames(){
 
