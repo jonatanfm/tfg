@@ -6,15 +6,15 @@
 
 #include <stdlib.h>
 
-
- #include <time.h>
+#include <direct.h>
+#include <time.h>
 #include "../globals.h"
 
 #include "../AsyncStream.h"
 #include "../RecordedStream.h"
 
 
-#ifndef WITH_LIBXL
+#ifdef HAS_LIBXL
 
 #include "libxl.h"
 using namespace libxl;
@@ -169,7 +169,10 @@ public:
 						redo=true;
 						rec->reset();
 					}
-					
+					else if(rec->hasFinished() && redo && tot2>1){
+						stopping=true;
+					}
+
 
 					if ( base->getSkeletonFrame(skeleton)) 
 							trackSkeletonPositions(skeleton.frame,skel);
@@ -180,10 +183,16 @@ public:
 						redo=true;
 						rec->reset();
 					}
-					
+					else if(rec->hasFinished() && redo  && tot2>1){
+						
+						stopping=true;
+					}
 
+					
 					if ( base->getSkeletonFrame(skeleton)) 
 							trackSkeletonPositionsChanged(skeleton.frame,skel);
+					
+					
 				}
 				
 				
@@ -197,20 +206,39 @@ public:
 			delete skel;
 
 			QString timestamp = QString::number(QDateTime::currentMSecsSinceEpoch() / 1000);
-			QString filename;
-			filename = timestamp;
-			filename += "_time.xls";
+			QString filename,filename2;
+			filename=filename2 = timestamp;
+			filename2 += "_time.xls";
 
-			QByteArray ba = filename.toLocal8Bit();
+			QByteArray ba = filename2.toLocal8Bit();
 			const char *filen = ba.data();
 
 			#ifdef HAS_LIBXL
-				booktmp->save(filen);       
+				if(type<2)booktmp->save(filen);       
 				booktmp->release();
-				
-
 			#endif
 
+			if (type>1){
+				filename += "_dataintime";
+				QByteArray ba2 = filename.toLocal8Bit();
+				const char *filen2 = ba2.data();
+				mkdir(filen2);
+				
+
+				for(int p=0;p<20;p++){
+					ofstream outputFile1(string(filen2,21)+"/"+jointName[p]+"_data.csv");
+					ofstream outputFile2(string(filen2,21)+"/"+jointName[p]+"_corrected.csv");
+					for(int y=0;y<punts[0].size();y++){
+						outputFile1 << punts[p][y].first.x<<","<< punts[p][y].first.y<<","<< punts[p][y].first.z<<","<< punts[p][y].second<<endl;
+						outputFile2 << puntsCorrected[p][y].first.x<<","<< puntsCorrected[p][y].first.y<<","<< puntsCorrected[p][y].first.z<<","<< punts[p][y].second<<endl;
+					}
+					
+
+					outputFile1.close();
+					outputFile2.close();
+				}
+				createBVH();
+			}
 			
         }
 
@@ -272,7 +300,7 @@ public:
 								res.first.x = ( p0.x*pow((1-m),3) ) + (3 * p1.x *m* pow((1-m),2) ) + (3* p2.x * pow(m,2) * (1-m) ) + (p3.x*pow(m,3) );
 								res.first.y = ( p0.y*pow((1-m),3) ) + (3 * p1.y *m* pow((1-m),2) ) + (3* p2.y * pow(m,2) * (1-m) ) + (p3.y*pow(m,3) );
 								res.first.z = ( p0.z*pow((1-m),3) ) + (3 * p1.z *m* pow((1-m),2) ) + (3* p2.z * pow(m,2) * (1-m) ) + (p3.z*pow(m,3) );
-								res.second=2;
+								res.second=punts[k][f+1].second;
 								
 								puntsCorrected[k].push_back(res);
 							}
@@ -382,6 +410,173 @@ public:
 		}
 
 		bool SkeletonStudy::checkSkeletonLength(Vector4& skel1,Vector4& skel2,int pos);
+
+		void SkeletonStudy::createBVH() {
+			vector<pair<int,int> > joints;
+			pair<int,int> ja;
+			
+			QString timestamp = QString::number(QDateTime::currentMSecsSinceEpoch() / 1000);
+			QString filename;
+			filename = timestamp;
+			QByteArray ba = filename.toLocal8Bit();
+			const char *filen = ba.data();
+			Vector4 tmp,tmp2;
+			ofstream outputFile(string(filen,10)+"_data.bvh");
+			float bonesize = 100;
+			outputFile << "HIERARCHY"<<endl;
+			outputFile << "ROOT Hip"<<endl;
+			outputFile << "{"<<endl;
+			tmp=puntsCorrected[0][0].first;
+			outputFile << "  OFFSET "<< tmp.x*bonesize << " " << tmp.y*bonesize <<" "<< tmp.z*bonesize<<endl;
+			outputFile << "  CHANNELS 6 Xposition Yposition Zposition Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "  JOINT LeftHip"<<endl;
+			outputFile << "  {"<<endl;
+			ja.first=0;ja.second=12; joints.push_back(ja);
+			tmp=puntsCorrected[0][0].first;tmp2=puntsCorrected[12][0].first;
+			outputFile << "    OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "    CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "    JOINT LeftKnee"<<endl;
+			outputFile << "    {"<<endl;
+			ja.first=12;ja.second=13; joints.push_back(ja);
+			tmp=puntsCorrected[12][0].first;tmp2=puntsCorrected[13][0].first;
+			outputFile << "      OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "      CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "      JOINT LeftAnkle"<<endl;
+			outputFile << "      {"<<endl;
+			ja.first=13;ja.second=14; joints.push_back(ja);
+			tmp=puntsCorrected[13][0].first;tmp2=puntsCorrected[14][0].first;
+			outputFile << "        OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "        CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "        End Site"<<endl;
+			outputFile << "        {"<<endl;
+			ja.first=14;ja.second=15; joints.push_back(ja);
+			tmp=puntsCorrected[14][0].first;tmp2=puntsCorrected[15][0].first;
+			outputFile << "          OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "        }"<<endl;
+			outputFile << "      }"<<endl;
+			outputFile << "    }"<<endl;
+			outputFile << "  }"<<endl;
+			outputFile << "  JOINT RightHip"<<endl;
+			outputFile << "  {"<<endl;
+			ja.first=0;ja.second=16; joints.push_back(ja);
+			tmp=puntsCorrected[0][0].first;tmp2=puntsCorrected[16][0].first;
+			outputFile << "    OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "    CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "    JOINT RightKnee"<<endl;
+			outputFile << "    {"<<endl;
+			ja.first=16;ja.second=17; joints.push_back(ja);
+			tmp=puntsCorrected[16][0].first;tmp2=puntsCorrected[17][0].first;
+			outputFile << "      OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "      CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "      JOINT RightAnkle"<<endl;
+			outputFile << "      {"<<endl;
+			ja.first=17;ja.second=18; joints.push_back(ja);
+			tmp=puntsCorrected[17][0].first;tmp2=puntsCorrected[18][0].first;
+			outputFile << "        OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "        CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "        End Site"<<endl;
+			outputFile << "        {"<<endl;
+			ja.first=18;ja.second=19; joints.push_back(ja);
+			tmp=puntsCorrected[18][0].first;tmp2=puntsCorrected[19][0].first;
+			outputFile << "          OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "        }"<<endl;
+			outputFile << "      }"<<endl;
+			outputFile << "    }"<<endl;
+			outputFile << "  }"<<endl;
+			outputFile << "  JOINT Spine"<<endl;
+			outputFile << "  {"<<endl;
+			ja.first=0;ja.second=1; joints.push_back(ja);
+			tmp=puntsCorrected[0][0].first;tmp2=puntsCorrected[1][0].first;
+			outputFile << "    OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "    CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "    JOINT Neck"<<endl;
+			outputFile << "    {"<<endl;
+			ja.first=1;ja.second=2; joints.push_back(ja);
+			tmp=puntsCorrected[1][0].first;tmp2=puntsCorrected[2][0].first;
+			outputFile << "      OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "      CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "      JOINT LeftShoulder"<<endl;
+			outputFile << "      {"<<endl;
+			ja.first=2;ja.second=4; joints.push_back(ja);
+			tmp=puntsCorrected[2][0].first;tmp2=puntsCorrected[4][0].first;
+			outputFile << "        OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "        CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "        JOINT LeftElbow"<<endl;
+			outputFile << "        {"<<endl;
+			ja.first=4;ja.second=5; joints.push_back(ja);
+			tmp=puntsCorrected[4][0].first;tmp2=puntsCorrected[5][0].first;
+			outputFile << "          OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "          CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "          JOINT LeftWrist"<<endl;
+			outputFile << "          {"<<endl;
+			ja.first=5;ja.second=6; joints.push_back(ja);
+			tmp=puntsCorrected[5][0].first;tmp2=puntsCorrected[6][0].first;
+			outputFile << "            OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "            CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "            End Site"<<endl;
+			outputFile << "            {"<<endl;
+			ja.first=6;ja.second=7; joints.push_back(ja);
+			tmp=puntsCorrected[6][0].first;tmp2=puntsCorrected[7][0].first;
+			outputFile << "              OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "            }"<<endl;
+			outputFile << "          }"<<endl;
+			outputFile << "        }"<<endl;
+			outputFile << "      }"<<endl;
+			outputFile << "      JOINT RightShoulder"<<endl;
+			outputFile << "      {"<<endl;
+			ja.first=2;ja.second=8; joints.push_back(ja);
+			tmp=puntsCorrected[2][0].first;tmp2=puntsCorrected[8][0].first;
+			outputFile << "        OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "        CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "        JOINT RightElbow"<<endl;
+			outputFile << "        {"<<endl;
+			ja.first=8;ja.second=9; joints.push_back(ja);
+			tmp=puntsCorrected[8][0].first;tmp2=puntsCorrected[9][0].first;
+			outputFile << "          OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "          CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "          JOINT RightWrist"<<endl;
+			outputFile << "          {"<<endl;
+			ja.first=9;ja.second=10; joints.push_back(ja);
+			tmp=puntsCorrected[9][0].first;tmp2=puntsCorrected[10][0].first;
+			outputFile << "            OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "            CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "            End Site"<<endl;
+			outputFile << "            {"<<endl;
+			ja.first=10;ja.second=11; joints.push_back(ja);
+			tmp=puntsCorrected[10][0].first;tmp2=puntsCorrected[11][0].first;
+			outputFile << "              OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "            }"<<endl;
+			outputFile << "          }"<<endl;
+			outputFile << "        }"<<endl;
+			outputFile << "      }"<<endl;
+			outputFile << "      JOINT Head"<<endl;
+			outputFile << "      {"<<endl;
+			ja.first=2;ja.second=3; joints.push_back(ja);
+			tmp=puntsCorrected[2][0].first;tmp2=puntsCorrected[3][0].first;
+			outputFile << "        OFFSET "<< (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize <<endl;
+			outputFile << "        CHANNELS 3 Zrotation Xrotation Yrotation"<<endl;
+			outputFile << "      }"<<endl;
+			outputFile << "    }"<<endl;
+			outputFile << "  }"<<endl;
+			outputFile << "}"<<endl;
+			outputFile << "MOTION"<<endl;
+			outputFile << "Frames:	0"<<endl;//puntsCorrected[0].size()-1<<endl;
+			outputFile << "Frame Time:	0.0333333"<<endl;
+						/*for(int h=1;h<puntsCorrected[0].size();h++){
+				outputFile << "0.000 0.000 0.000 ";
+				for(int qw=0;qw<joints.size();qw++){
+					tmp=puntsCorrected[joints[qw].first][h].first;tmp2=puntsCorrected[joints[qw].second][h].first;
+					outputFile << (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize;
+					if((qw+1) <joints.size())outputFile<<" ";
+				}
+				outputFile << endl;
+			}*/
+			
+			
+			outputFile.close();
+
+
+		};
 };
 
 #endif
