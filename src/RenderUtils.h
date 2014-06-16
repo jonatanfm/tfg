@@ -95,10 +95,10 @@ class RenderUtils
 
 
         // Draws a single skeleton bone, as specified by two joints indices
-        static void drawBone(const NUI_SKELETON_DATA& skel, Point3D* points, NUI_SKELETON_POSITION_INDEX joint1, NUI_SKELETON_POSITION_INDEX joint2);
+        static void drawBone(const NUI_SKELETON_DATA& skel, Point3D* points, NUI_SKELETON_POSITION_INDEX joint1, NUI_SKELETON_POSITION_INDEX joint2, int c);
 
         // Draws a single skeleton using the given coordinate converter.
-        static void drawSkeleton(const NUI_SKELETON_DATA& skel, SkeletonPointConverter pointConverter);
+        static void drawSkeleton(const NUI_SKELETON_DATA& skel, SkeletonPointConverter pointConverter, int c=0);
 
         // Draws all skeletons on a skeleton frame, for a 2D color or depth frame.
         static void drawSkeletons(const NUI_SKELETON_FRAME& frame, bool colorFrame);

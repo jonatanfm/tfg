@@ -87,7 +87,7 @@ int mainAugmented(QApplication& app)
         }
         delete stream;
     #else
-        QMessageBox::critical(this, "Unsupported", "You need to have Bullet Physics installed and the project configured as described in its readme in order to open the Augmented View.");
+        //QMessageBox::critical(this, "Unsupported", "You need to have Bullet Physics installed and the project configured as described in its readme in order to open the Augmented View.");
     #endif
 
     return returnValue;
