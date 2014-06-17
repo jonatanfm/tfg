@@ -207,10 +207,16 @@ Point3D skeletonTo3D(const Vector4& skelPoint)
     return Point3D(-skelPoint.x, skelPoint.y, skelPoint.z);
 }
 
-static float COLOR_BONE_TRACKED[] = { 0.0f, 0.5f, 0.0f, 1.0f };
+static float COLOR_BONE_TRACKED[6][4] = {{ 0.0f, 0.5f, 0.0f, 1.0f },
+										 { 0.0f, 0.5f, 0.5f, 1.0f },
+										 { 0.0f, 0.0f, 0.5f, 1.0f },
+										 { 0.5f, 0.5f, 0.0f, 1.0f },
+										 { 0.5f, 0.0f, 0.5f, 1.0f },
+										 { 0.2f, 0.7f, 0.2f, 1.0f }};
+
 static float COLOR_BONE_INFERRED[] = { 0.5f, 0.0f, 0.0f, 1.0f };
 
-void RenderUtils::drawBone(const NUI_SKELETON_DATA& skel, Point3D* points, NUI_SKELETON_POSITION_INDEX joint0, NUI_SKELETON_POSITION_INDEX joint1)
+void RenderUtils::drawBone(const NUI_SKELETON_DATA& skel, Point3D* points, NUI_SKELETON_POSITION_INDEX joint0, NUI_SKELETON_POSITION_INDEX joint1, int c)
 {
     NUI_SKELETON_POSITION_TRACKING_STATE
         s0 = skel.eSkeletonPositionTrackingState[joint0],
@@ -232,7 +238,7 @@ void RenderUtils::drawBone(const NUI_SKELETON_DATA& skel, Point3D* points, NUI_S
     if (s0 == NUI_SKELETON_POSITION_TRACKED &&
         s1 == NUI_SKELETON_POSITION_TRACKED)
     {
-        RenderUtils::setColor(COLOR_BONE_TRACKED);
+        RenderUtils::setColor(COLOR_BONE_TRACKED[c]);
     }
     else {
         RenderUtils::setColor(COLOR_BONE_INFERRED);
@@ -244,7 +250,7 @@ void RenderUtils::drawBone(const NUI_SKELETON_DATA& skel, Point3D* points, NUI_S
     RenderUtils::drawLine(p0, p1);
 }
 
-void RenderUtils::drawSkeleton(const NUI_SKELETON_DATA& skel, SkeletonPointConverter pointConverter)
+void RenderUtils::drawSkeleton(const NUI_SKELETON_DATA& skel, SkeletonPointConverter pointConverter, int c)
 {
     Point3D points[NUI_SKELETON_POSITION_COUNT];
     for (int i = 0; i < NUI_SKELETON_POSITION_COUNT; ++i) {
@@ -252,45 +258,46 @@ void RenderUtils::drawSkeleton(const NUI_SKELETON_DATA& skel, SkeletonPointConve
     }
 
     // Torso
-    drawBone(skel, points, NUI_SKELETON_POSITION_HEAD, NUI_SKELETON_POSITION_SHOULDER_CENTER);
-    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_CENTER, NUI_SKELETON_POSITION_SHOULDER_LEFT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_CENTER, NUI_SKELETON_POSITION_SHOULDER_RIGHT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_CENTER, NUI_SKELETON_POSITION_SPINE);
-    drawBone(skel, points, NUI_SKELETON_POSITION_SPINE, NUI_SKELETON_POSITION_HIP_CENTER);
-    drawBone(skel, points, NUI_SKELETON_POSITION_HIP_CENTER, NUI_SKELETON_POSITION_HIP_LEFT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_HIP_CENTER, NUI_SKELETON_POSITION_HIP_RIGHT);
+    drawBone(skel, points, NUI_SKELETON_POSITION_HEAD, NUI_SKELETON_POSITION_SHOULDER_CENTER, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_CENTER, NUI_SKELETON_POSITION_SHOULDER_LEFT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_CENTER, NUI_SKELETON_POSITION_SHOULDER_RIGHT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_CENTER, NUI_SKELETON_POSITION_SPINE, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_SPINE, NUI_SKELETON_POSITION_HIP_CENTER, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_HIP_CENTER, NUI_SKELETON_POSITION_HIP_LEFT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_HIP_CENTER, NUI_SKELETON_POSITION_HIP_RIGHT, c);
 
     // Left Arm
-    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_LEFT, NUI_SKELETON_POSITION_ELBOW_LEFT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_ELBOW_LEFT, NUI_SKELETON_POSITION_WRIST_LEFT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_WRIST_LEFT, NUI_SKELETON_POSITION_HAND_LEFT);
+    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_LEFT, NUI_SKELETON_POSITION_ELBOW_LEFT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_ELBOW_LEFT, NUI_SKELETON_POSITION_WRIST_LEFT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_WRIST_LEFT, NUI_SKELETON_POSITION_HAND_LEFT, c);
 
     // Right Arm
-    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_RIGHT, NUI_SKELETON_POSITION_ELBOW_RIGHT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_ELBOW_RIGHT, NUI_SKELETON_POSITION_WRIST_RIGHT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_WRIST_RIGHT, NUI_SKELETON_POSITION_HAND_RIGHT);
+    drawBone(skel, points, NUI_SKELETON_POSITION_SHOULDER_RIGHT, NUI_SKELETON_POSITION_ELBOW_RIGHT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_ELBOW_RIGHT, NUI_SKELETON_POSITION_WRIST_RIGHT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_WRIST_RIGHT, NUI_SKELETON_POSITION_HAND_RIGHT, c);
 
     // Left Leg
-    drawBone(skel, points, NUI_SKELETON_POSITION_HIP_LEFT, NUI_SKELETON_POSITION_KNEE_LEFT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_KNEE_LEFT, NUI_SKELETON_POSITION_ANKLE_LEFT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_ANKLE_LEFT, NUI_SKELETON_POSITION_FOOT_LEFT);
+    drawBone(skel, points, NUI_SKELETON_POSITION_HIP_LEFT, NUI_SKELETON_POSITION_KNEE_LEFT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_KNEE_LEFT, NUI_SKELETON_POSITION_ANKLE_LEFT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_ANKLE_LEFT, NUI_SKELETON_POSITION_FOOT_LEFT, c);
 
     // Right Leg
-    drawBone(skel, points, NUI_SKELETON_POSITION_HIP_RIGHT, NUI_SKELETON_POSITION_KNEE_RIGHT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_KNEE_RIGHT, NUI_SKELETON_POSITION_ANKLE_RIGHT);
-    drawBone(skel, points, NUI_SKELETON_POSITION_ANKLE_RIGHT, NUI_SKELETON_POSITION_FOOT_RIGHT);
+    drawBone(skel, points, NUI_SKELETON_POSITION_HIP_RIGHT, NUI_SKELETON_POSITION_KNEE_RIGHT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_KNEE_RIGHT, NUI_SKELETON_POSITION_ANKLE_RIGHT, c);
+    drawBone(skel, points, NUI_SKELETON_POSITION_ANKLE_RIGHT, NUI_SKELETON_POSITION_FOOT_RIGHT, c);
 
     // Joints
     for (int i = 0; i < NUI_SKELETON_POSITION_COUNT; ++i) {
         NUI_SKELETON_POSITION_TRACKING_STATE state = skel.eSkeletonPositionTrackingState[i];
         if (state == NUI_SKELETON_POSITION_TRACKED) {
-            RenderUtils::setColor(COLOR_BONE_TRACKED);
+
+            RenderUtils::setColor(COLOR_BONE_TRACKED[c]);
         }
         else if (state == NUI_SKELETON_POSITION_INFERRED) {
             RenderUtils::setColor(COLOR_BONE_INFERRED);
         }
         else if (state == NUI_SKELETON_POSITION_NOT_TRACKED) {
-            RenderUtils::setColor(COLOR_BONE_TRACKED);
+            RenderUtils::setColor(COLOR_BONE_TRACKED[c]);
         }
         
         RenderUtils::drawPoint(points[i], 3.0f);
@@ -303,7 +310,7 @@ void RenderUtils::drawSkeletons(const NUI_SKELETON_FRAME& frame, bool inColorFra
     for (int i = 0; i < NUI_SKELETON_COUNT; ++i) {
         NUI_SKELETON_TRACKING_STATE state = frame.SkeletonData[i].eTrackingState;
         if (NUI_SKELETON_TRACKED == state) {
-            drawSkeleton(frame.SkeletonData[i], pointConverter);
+            drawSkeleton(frame.SkeletonData[i], pointConverter, i);
         }
         else if (NUI_SKELETON_POSITION_ONLY == state) {
             Point3D pos = pointConverter(frame.SkeletonData[i].Position);

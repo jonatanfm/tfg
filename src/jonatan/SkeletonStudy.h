@@ -420,7 +420,7 @@ public:
 			filename = timestamp;
 			QByteArray ba = filename.toLocal8Bit();
 			const char *filen = ba.data();
-			Vector4 tmp,tmp2;
+			Vector4 tmp,tmp2,tmp3;
 			ofstream outputFile(string(filen,10)+"_data.bvh");
 			float bonesize = 100;
 			outputFile << "HIERARCHY"<<endl;
@@ -560,17 +560,23 @@ public:
 			outputFile << "  }"<<endl;
 			outputFile << "}"<<endl;
 			outputFile << "MOTION"<<endl;
-			outputFile << "Frames:	0"<<endl;//puntsCorrected[0].size()-1<<endl;
+			outputFile << "Frames:	"<< puntsCorrected[0].size() <<endl;
 			outputFile << "Frame Time:	0.0333333"<<endl;
-						/*for(int h=1;h<puntsCorrected[0].size();h++){
-				outputFile << "0.000 0.000 0.000 ";
+			for(int h=1;h<puntsCorrected[0].size();h++){
+				outputFile << puntsCorrected[0][h].first.x << " "<< puntsCorrected[0][h].first.y << " "<< puntsCorrected[0][h].first.z << " ";
 				for(int qw=0;qw<joints.size();qw++){
-					tmp=puntsCorrected[joints[qw].first][h].first;tmp2=puntsCorrected[joints[qw].second][h].first;
+					tmp=puntsCorrected[joints[qw].first][h].first;
+					tmp2=puntsCorrected[joints[qw].second][h].first;
+					tmp.x=tmp.x-tmp2.x;tmp.y=tmp.y-tmp2.y;tmp.z=tmp.z-tmp2.z;
+					tmp2=puntsCorrected[joints[qw].first][h-1].first;
+					tmp3=puntsCorrected[joints[qw].second][h-1].first;
+					tmp2.x=tmp2.x-tmp3.x;tmp2.y=tmp2.y-tmp3.y;tmp2.z=tmp2.z-tmp3.z;
+
 					outputFile << (tmp2.x-tmp.x)*bonesize <<" "<< (tmp2.y-tmp.y)*bonesize <<" "<< (tmp2.z-tmp.z)*bonesize;
 					if((qw+1) <joints.size())outputFile<<" ";
 				}
 				outputFile << endl;
-			}*/
+			}
 			
 			
 			outputFile.close();
