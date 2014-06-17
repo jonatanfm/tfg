@@ -23,7 +23,7 @@ class Cube : public BasicObject
 
             btRigidBody::btRigidBodyConstructionInfo rbci(mass, motionState, shape, inertia);
             rigidBody = new btRigidBody(rbci);
-            rigidBody->setRestitution(0.9f);
+            //rigidBody->setRestitution(0.9f);
         }
 
         ~Cube()

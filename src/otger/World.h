@@ -14,6 +14,7 @@
 #include "KinematicMotionState.h"
 
 #include "Object.h"
+#include "BasicObject.h"
 
 class btBroadphaseInterface;
 class btDefaultCollisionConfiguration;
@@ -71,11 +72,11 @@ class World : private QThread
         // List of objects
         std::vector<Object*> objects;
 
+        // List of physics user skeleton object
+        std::vector<Skeleton*> skeletons;
+
         // The floor object
         Floor* floor;
-
-        // The physics user skeleton object
-        Skeleton* skeleton;
     
         // Runs the simulation
         void run() override;
@@ -107,6 +108,8 @@ class World : private QThread
         }*/
 
         void addObject(Object* object);
+
+        void addObjectOverHand(BasicObject* object);
 
         void clearObjects();
 

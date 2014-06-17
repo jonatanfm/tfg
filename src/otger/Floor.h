@@ -31,6 +31,8 @@ class Floor : public BasicObject
 
         void updatePlane(float a, float b, float c, float d)
         {
+            d = 0.75f; // TODO: Remove
+
             if (abs(d - planeD) < 0.015f) return;
 
             planeD = d;

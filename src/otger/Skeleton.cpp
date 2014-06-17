@@ -77,19 +77,10 @@ Skeleton::~Skeleton()
     }
 }
 
-int Skeleton::findSkeleton(const NUI_SKELETON_FRAME& frame)
-{
-    for (int i = 0; i < NUI_SKELETON_COUNT; ++i) {
-        if (frame.SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED) return i;
-    }
-    return -1;
-}
-
-void Skeleton::update(const NUI_SKELETON_FRAME& frame)
+void Skeleton::update(const NUI_SKELETON_FRAME& frame, int idx)
 {
     //qDebug("%.2f %.2f %.2f %.2f\n", frame.vFloorClipPlane.x, frame.vFloorClipPlane.y, frame.vFloorClipPlane.z, frame.vFloorClipPlane.w);
 
-    int idx = findSkeleton(frame);
     if (idx == -1) {
         for (int i = 0; i < NUM_BONES; ++i) bones[i].rigidBody->setActivationState(DISABLE_SIMULATION);
         head.rigidBody->setActivationState(DISABLE_SIMULATION);
@@ -120,6 +111,9 @@ void Skeleton::update(const NUI_SKELETON_FRAME& frame)
         btVector3 u(-u0.x, u0.y, u0.z);
         btVector3 v(-v0.x, v0.y, v0.z);
         btVector3 uv = v - u;
+        
+        // If "uv" == "up", change "up"
+        if (uv.x() == 0 && uv.y() == 0) up.setValue(0, 0, 1);
 
         btVector3 right = uv.cross(up);
         up = right.cross(uv);

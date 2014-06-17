@@ -5,8 +5,6 @@
 
 #include <QMdiSubWindow>
 
-#include "WidgetOpenGL.h"
-
 #include "DataStream.h"
 
 class MainWindow;
@@ -41,12 +39,11 @@ class SubWindow : public QMdiSubWindow
 };
 
 
-// A widget that is the root widget of a SubWindow.
-// (Does not inherit from QWidget due to virtual inheritance problems).
-class SubWindowWidget
+//  that is the root widget of a SubWindow.
+class SubWindowContent
 {
     public:
-        virtual ~SubWindowWidget() { };
+        virtual ~SubWindowContent() { };
 
         // Get the main stream used in this subwindow, or null if no stream is used
         virtual Ptr<DataStream> getStream() const
@@ -64,7 +61,7 @@ class SubWindowWidget
 
 
 // A simple widget used as a stub view for non-representable streams
-class EmptyView : public QLabel, public SubWindowWidget
+class EmptyView : public QLabel, public SubWindowContent
 {
     private:
         Ptr<DataStream> stream;

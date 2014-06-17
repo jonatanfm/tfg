@@ -4,67 +4,90 @@
 
 #include "Mode.h"
 
-WidgetOpenGL::WidgetOpenGL(QWidget *parent) :
-    QGLWidget(parent),
-    mode(nullptr),
-    preferredWidth(ColorFrame::WIDTH),
-    preferredHeight(ColorFrame::HEIGHT),
-    fps(0)
+
+RendererOpenGL::RendererOpenGL() :
+    widget(nullptr),
+    active(true),
+    aspectWidth(ColorFrame::WIDTH),
+    aspectHeight(ColorFrame::HEIGHT),
+    fps(0),
+    mode(nullptr)
 {
-    setMinimumSize(320, 240);
-    //setMaximumSize(640, 480);
-
-    /*QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    policy.setHeightForWidth(true);
-    setSizePolicy(policy);*/
-
-    connect(this, SIGNAL(triggerRefresh()), this, SLOT(updateGL()));
 }
 
-WidgetOpenGL::~WidgetOpenGL()
+
+void RendererOpenGL::start()
 {
-    timer.stop();
-}
-
-void WidgetOpenGL::initializeGL()
-{
-    //makeCurrent();
-
-    /*auto f = format();
-    qDebug() << f;*/
-
+    assert(widget != nullptr);
+    widget->makeCurrent();
+    
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_BACK);
-
     initialize();
+
+    if (widget->isAsync()) connect(this, SIGNAL(triggerRefresh()), this, SLOT(performRender()));
+    else connect(this, SIGNAL(triggerRefresh()), widget, SLOT(updateGL()));
 
     if (fps > 0) timer.start(1000 / fps, this);
 }
 
-void WidgetOpenGL::resizeGL(int w, int h)
+void RendererOpenGL::stop()
 {
-    int x = 0, y = 0;
-    //makeCurrent();
-    int targetH = (w * preferredHeight) / preferredWidth;
-    if (h < targetH) {
-        int targetW = (h * preferredWidth) / preferredHeight;
-        x = (w - targetW) / 2;
-        w = targetW;
+    if (widget->isAsync()) {
+        QMutexLocker locker(&mutex);
+        active = false;
     }
     else {
-        y = (h - targetH) / 2;
-        h = targetH;
+        timer.stop();
     }
-    glViewport(x, y, w, h);
 }
 
-void WidgetOpenGL::paintGL()
+void RendererOpenGL::resize(int w, int h)
 {
-    //makeCurrent();
+    QMutexLocker locker(&mutex);
+    viewportWidth = w;
+    viewportHeight = h;
+}
+
+void RendererOpenGL::timerEvent(QTimerEvent *event)
+{
+    QMutexLocker locker(&mutex);
+    if (!active) {
+        timer.stop();
+        QThread::currentThread()->quit();
+        return;
+    }
+
+    onTick();
+
+    if (widget->isAsync()) performRender();
+    else widget->updateGL();
+}
+
+void RendererOpenGL::performRender()
+{
+    if (!widget->isValid()) return;
+    if (!widget->updatesEnabled()) return;
+    //if (!widget->paintEngine()->isActive()) return;
+
+    widget->context()->makeCurrent();
+    
     glColor3f(1.0f, 1.0f, 1.0f);
 
+    {
+        int x = 0, y = 0, w = viewportWidth, h = viewportHeight;
+        int targetH = (w * aspectHeight) / aspectWidth;
+        if (h < targetH) {
+            int targetW = (h * aspectWidth) / aspectHeight;
+            x = (w - targetW) / 2;
+            w = targetW;
+        }
+        else {
+            y = (h - targetH) / 2;
+            h = targetH;
+        }
+        glViewport(x, y, w, h);
+    }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -75,38 +98,14 @@ void WidgetOpenGL::paintGL()
     }
     else {
         glColor3f(1.0f, 0.0f, 0.0f);
-        RenderUtils::drawLine(Point2D(-0.95f, -0.95f), Point2D(0.95f,  0.95f));
-        RenderUtils::drawLine(Point2D(-0.95f,  0.95f), Point2D(0.95f, -0.95f));
+        RenderUtils::drawLine(Point2D(-0.95f, -0.95f), Point2D(0.95f, 0.95f));
+        RenderUtils::drawLine(Point2D(-0.95f, 0.95f), Point2D(0.95f, -0.95f));
     }
 
-    //swapBuffers();
+    if (widget->isAsync()) widget->swapBuffers();
 }
 
-void WidgetOpenGL::timerEvent(QTimerEvent*)
-{
-    onTick();
-    updateGL();
-}
-
-void WidgetOpenGL::mousePressEvent(QMouseEvent* ev)
-{
-    if (mode != nullptr && mode->obj != nullptr) mode->obj->mousePressEvent(this, ev);
-}
-
-void WidgetOpenGL::mouseReleaseEvent(QMouseEvent* ev)
-{
-
-    if (mode != nullptr && mode->obj != nullptr) mode->obj->mouseReleaseEvent(this, ev);
-}
-
-void WidgetOpenGL::moveEvent(QMoveEvent* ev)
-{
-    if (mode != nullptr && mode->obj != nullptr) mode->obj->moveEvent(this, ev);
-}
-
-
-
-bool WidgetOpenGL::hasOverlay(const std::string& name)
+bool RendererOpenGL::hasOverlay(const std::string& name)
 {
     auto it = overlays.begin();
     while (it != overlays.end()) {
@@ -116,7 +115,7 @@ bool WidgetOpenGL::hasOverlay(const std::string& name)
     return false;
 }
 
-void WidgetOpenGL::addOverlay(const std::string& name, Overlay overlay)
+void RendererOpenGL::addOverlay(const std::string& name, Overlay overlay)
 {
     auto it = overlays.begin();
     while (it != overlays.end()) {
@@ -124,20 +123,21 @@ void WidgetOpenGL::addOverlay(const std::string& name, Overlay overlay)
         ++it;
     }
     overlays.push_back(std::make_pair(name, overlay));
-    updateGL();
+    emit triggerRefresh();
 }
 
-void WidgetOpenGL::removeOverlay(const std::string& name)
+void RendererOpenGL::removeOverlay(const std::string& name)
 {
     auto it = overlays.begin();
     while (it != overlays.end()) {
         if (it->first == name) it = overlays.erase(it);
         else ++it;
     }
-    updateGL();
+    emit triggerRefresh();
 }
 
-void WidgetOpenGL::removeAllOverlays()
+void RendererOpenGL::removeAllOverlays()
 {
     overlays.resize(0);
 }
+

@@ -9,8 +9,8 @@
 #include "DataStream.h"
 #include "WidgetOpenGL.h"
 
-// Widget that shows the depth frames provided by a stream.
-class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
+// Widget renderer that shows the depth frames provided by a stream.
+class WidgetDepthView : public RendererOpenGL
 {
     private:
         Ptr<DataStream> stream;
@@ -27,15 +27,7 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
         WidgetDepthView(Ptr<DataStream> stream) :
             stream(stream)
         {
-            preferredWidth = DepthFrame::WIDTH;
-            preferredHeight = DepthFrame::HEIGHT;
-
-            makeCurrent();
-            texture = RenderUtils::createTexture(DepthFrame::WIDTH, DepthFrame::HEIGHT);
-
-            stream->addNewFrameCallback(this, [this](const ColorFrame*, const DepthFrame*, const SkeletonFrame*) -> void {
-                emit this->triggerRefresh();
-            });
+            setAspect(DepthFrame::WIDTH, DepthFrame::HEIGHT);
         }
 
         ~WidgetDepthView()
@@ -46,6 +38,15 @@ class WidgetDepthView : public WidgetOpenGL, public SubWindowWidget
         Ptr<DataStream> getStream() const override
         {
             return stream;
+        }
+
+        void initialize() override
+        {
+            texture = RenderUtils::createTexture(DepthFrame::WIDTH, DepthFrame::HEIGHT);
+
+            stream->addNewFrameCallback(this, [this](const ColorFrame*, const DepthFrame*, const SkeletonFrame*) -> void {
+                emit this->triggerRefresh();
+            });
         }
 
         // Convert the depth frame to a RGBA image for visualization

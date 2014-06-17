@@ -3,6 +3,10 @@
 #include "Utils.h"
 
 
+// Disable WiP (Not finished)
+#undef HAS_KINECT_TOOLKIT
+
+
 // Coordinate Spaces: http://msdn.microsoft.com/en-us/library/hh973078.aspx
 
 #ifdef HAS_KINECT_TOOLKIT
@@ -48,22 +52,20 @@ class InteractionClient : public INuiInteractionClient
 
 std::string getErrorString(DWORD errorCode)
 {
-    LPVOID buffer;
+    CHAR buffer[4*1024];
 
     FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER |
         FORMAT_MESSAGE_FROM_SYSTEM |
         FORMAT_MESSAGE_IGNORE_INSERTS |
         FORMAT_MESSAGE_MAX_WIDTH_MASK,
         nullptr,
         errorCode,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPSTR)&buffer,
-        0, nullptr);
+        buffer,
+        sizeof(buffer)/sizeof(buffer[0]),
+        nullptr);
 
-    std::string msg((LPSTR)buffer);
-
-    LocalFree(buffer);
+    std::string msg(buffer);
 
     return msg;
 }
@@ -71,7 +73,7 @@ std::string getErrorString(DWORD errorCode)
 void reportError(DWORD errorCode, const char* functionCall)
 {
     std::string msg = std::string("Failed call: ") + std::string(functionCall) + std::string("\n\nError: ") + getErrorString(errorCode);
-    MessageBoxA(nullptr, msg.c_str(), "Kinect Initialization Error", MB_OK);
+    MessageBoxA(nullptr, msg.c_str(), "Kinect Error", MB_OK);
 }
 
 
@@ -197,6 +199,12 @@ bool KinectStream::initializeStreams()
     return true;
 }
 
+#undef CHECK
+
+#define CHECK(funcCall) \
+    if (FAILED(res = (funcCall))) reportError(res, STRINGIFY(funcCall));
+
+
 // Assumes size % 4 == 0
 void convertBGRA2RGBA(unsigned char* buffer, unsigned int size)
 {
@@ -280,8 +288,9 @@ void KinectStream::updateInteractions()
 
         HRESULT res;
 
-        res = interactionStream->ProcessDepth(DepthFrame::BYTES, (BYTE*) depthBuffer.pixels, depthTimestamp);
-        res = interactionStream->ProcessSkeleton(NUI_SKELETON_COUNT, skeletonBuffer.frame.SkeletonData, &reading, skeletonBuffer.frame.liTimeStamp);
+        CHECK(interactionStream->ProcessDepth(DepthFrame::BYTES, (BYTE*)depthBuffer.pixels, depthTimestamp));
+
+        CHECK(interactionStream->ProcessSkeleton(NUI_SKELETON_COUNT, skeletonBuffer.frame.SkeletonData, &reading, skeletonBuffer.frame.liTimeStamp));
     
         NUI_INTERACTION_FRAME frame;
         res = interactionStream->GetNextFrame(0, &frame);

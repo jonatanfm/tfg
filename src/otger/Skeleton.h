@@ -33,10 +33,8 @@ class Skeleton : public Object
         Skeleton();
 
         ~Skeleton();
-
-        static int findSkeleton(const NUI_SKELETON_FRAME& frame);
         
-        void update(const NUI_SKELETON_FRAME& frame);
+        void update(const NUI_SKELETON_FRAME& frame, int idx);
 
         void render(RenderManager& textures) override;
 

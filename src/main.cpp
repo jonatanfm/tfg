@@ -77,7 +77,7 @@ int mainAugmented(QApplication& app)
             QMainWindow* window = new QMainWindow();
             window->setWindowTitle("TFG");
             window->resize(960, 720);
-            window->setCentralWidget(new WidgetAugmentedView(stream, *world));
+            window->setCentralWidget(new WidgetOpenGL(new WidgetAugmentedView(stream, *world)));
             window->show();
 
             returnValue = app.exec();
@@ -87,7 +87,7 @@ int mainAugmented(QApplication& app)
         }
         delete stream;
     #else
-        QMessageBox::critical(this, "Unsupported", "You need to have Bullet Physics installed and the project configured as described in its readme in order to open the Augmented View.");
+        QMessageBox::critical(nullptr, "Unsupported", "You need to have Bullet Physics installed and the project configured as described in its readme in order to open the Augmented View.");
     #endif
 
     return returnValue;

@@ -133,8 +133,8 @@ class MainWindow : public QMainWindow
         // Loads the configuration file (if exists) and opens the corresponding subwindows/streams.
         void initialize();
 
-        // Add a new subwindow for the given widget and with the given title.
-        void addSubWindow(SubWindowWidget* widget, const QString& title);
+        // Add a new subwindow for the given content and with the given title.
+        void addSubWindow(SubWindowContent* content, const QString& title);
 
         // Opens the corresponding windows for the stream with index i.
         void openStreamWindows(int i);
@@ -146,7 +146,7 @@ class MainWindow : public QMainWindow
         void setMode(int index, Mode* mode);
 
         // Toggles between showing or not the skeletons in the given widget (if can display skeletons).
-        void toggleSkeletonsOverlay(WidgetOpenGL* widget);
+        void toggleSkeletonsOverlay(RendererOpenGL* renderer);
 
         // Called when a stream has been paused, unpaused, resetted, an option has changed, etc.
         void updateToolbar();
@@ -159,10 +159,12 @@ class MainWindow : public QMainWindow
         // UTILITY FUNCTIONS
         //
         
-        // Returns the current selected subwindow stream, or null if no subwindow or has nostream
+        // Returns the current selected subwindow stream, or null if no subwindow or it has no stream
         inline Ptr<DataStream> getCurrentStream()
         {
-            SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
+            QMdiSubWindow* win = mdiArea->currentSubWindow();
+            if (win == nullptr) return nullptr;
+            SubWindowContent* w = dynamic_cast<SubWindowContent*>(win->widget());
             return (w != nullptr) ? w->getStream() : nullptr;
         }
         

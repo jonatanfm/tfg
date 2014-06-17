@@ -7,6 +7,8 @@
 
 class MainWindow;
 
+class RendererOpenGL;
+
 // A mode of interaction with the subwindow widgets.
 // Handles what happens when a widget receives events.
 class Mode
@@ -18,11 +20,11 @@ class Mode
 
         Mode(MainWindow* window) : window(window) { }
 
-        virtual void mousePressEvent(WidgetOpenGL* w, QMouseEvent* ev) { }
+        virtual void mousePressEvent(RendererOpenGL* w, QMouseEvent* ev) { }
 
-        virtual void mouseReleaseEvent(WidgetOpenGL* w, QMouseEvent* ev) { }
+        virtual void mouseReleaseEvent(RendererOpenGL* w, QMouseEvent* ev) { }
 
-        virtual void moveEvent(WidgetOpenGL* w, QMoveEvent* ev) { }
+        virtual void mouseMoveEvent(RendererOpenGL* w, QMouseEvent* ev) { }
 };
 
 #endif

@@ -28,12 +28,15 @@ WidgetAugmentedView::WidgetAugmentedView(Ptr<DataStream> stream, World& world) :
     renderManager(*this),
     depthCorrectionMethod(1)
 {
-    resize(preferredWidth, preferredHeight);
+
 }
 
 WidgetAugmentedView::~WidgetAugmentedView()
 {
     if (stream) stream->removeNewFrameCallback(this);
+
+    getWidget()->makeCurrent();
+    renderManager.clear();
 }
 
 void WidgetAugmentedView::initialize()
@@ -42,8 +45,8 @@ void WidgetAugmentedView::initialize()
 
     qDebug() << "OpenGL version:" << QString((const char*) glGetString(GL_VERSION));
 
-    const float lightPos[] = { 0.0f, 0.5f, -0.4f, 0.0f };
-    const float ambient[] = { 0.4f, 0.4f, 0.4f, 1.0f };
+    const float lightPos[] = { 0.05f, 0.5f, -0.4f, 0.0f };
+    const float ambient[] = { 1.0f, 1.0f, 1.0f, 0.0f };
 
     glEnable(GL_LIGHT0);
     glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
@@ -147,9 +150,11 @@ bool WidgetAugmentedView::render()
             // Vectorized assuming ColorFrame::SIZE % 8 == 0
             __m128i min = _mm_set1_epi16(static_cast<short>(DepthFrame::MIN_DEPTH));
             __m128i max = _mm_set1_epi16(static_cast<short>(DepthFrame::MAX_DEPTH));
+            __m128i _0 = _mm_setzero_si128();
             for (; dest < end; dest += 8, src += 8) {
                 __m128i v = _mm_set_epi16(SRC(7), SRC(6), SRC(5), SRC(4), SRC(3), SRC(2), SRC(1), SRC(0));
                 v = _mm_max_epu16(min, _mm_min_epu16(max, v));
+                v = _mm_blendv_epi8(v, max, _mm_cmpeq_epi16(_0, v));
                 _mm_store_si128((__m128i*)dest, v);
             }
         #else
@@ -181,13 +186,13 @@ bool WidgetAugmentedView::render()
 
     glScalef(1.0f, 1.0f, -1.0f); // Invert Z axis so that +Z is in front of the camera
 
-    // A test plane
-    /*glBegin(GL_TRIANGLE_STRIP);
+    // A plane to test occlusion
+    glBegin(GL_TRIANGLE_STRIP);
         glVertex3f(-0.5f, -0.5f, 0.5f);
         glVertex3f(-0.5f, 0.5f, 3.0f);
         glVertex3f(0.5f, -0.5f, 3.0f);
         glVertex3f(0.5f, 0.5f, 5.5f);
-    glEnd();*/
+    glEnd();
 
     glEnable(GL_LIGHTING);
 
@@ -214,7 +219,8 @@ void WidgetAugmentedView::createActions(QToolBar* menu)
 
     ACTION_ICON("Spawn Object", spawnObject(), ":/add.png");
 
-    ACTION_ICON("Spawn Ball", spawnBall(), ":/sport_soccer.png");
+    ACTION_ICON("Spawn Ball Small", spawnBallSmall(), ":/sport_golf.png");
+    ACTION_ICON("Spawn Ball Big", spawnBallBig(), ":/sport_soccer.png");
     ACTION_ICON("Spawn Cube", spawnCube(), ":/package.png");
 
     menu->addSeparator();
@@ -234,12 +240,17 @@ void WidgetAugmentedView::spawnObject()
 
 void WidgetAugmentedView::spawnCube()
 {
-    world.addObject(new Cube(0, 5.0f, 2.0f, 0.3f, 1.0f));
+    world.addObject(new Cube(0, 3.0f, 2.0f, 0.3f, 10.0f));
 }
 
-void WidgetAugmentedView::spawnBall()
+void WidgetAugmentedView::spawnBallSmall()
 {
-    world.addObject(new Ball(0, 5.0f, 2.0f, 0.1f, 1.0f));
+    world.addObject(new Ball(0, 3.0f, 2.0f, 0.1f, 3.0f));
+}
+
+void WidgetAugmentedView::spawnBallBig()
+{
+    world.addObject(new Ball(0, 3.0f, 2.0f, 0.25f, 3.0f));
 }
 
 void WidgetAugmentedView::clearObjects()

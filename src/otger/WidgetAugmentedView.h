@@ -14,8 +14,8 @@
 
 class MainWindow;
 
-// Widget that displays an augmented view, showing a real scene with virtual objects.
-class WidgetAugmentedView : public WidgetOpenGL, protected QGLFunctions, public SubWindowWidget
+// Widget renderer that displays an augmented view, showing a real scene with virtual objects.
+class WidgetAugmentedView : public RendererOpenGL, protected QGLFunctions
 {
     Q_OBJECT
 
@@ -70,7 +70,8 @@ class WidgetAugmentedView : public WidgetOpenGL, protected QGLFunctions, public 
 
         void spawnObject();
         void spawnCube();
-        void spawnBall();
+        void spawnBallSmall();
+        void spawnBallBig();
 
         void clearObjects();
 

@@ -51,9 +51,6 @@ World::World() :
     floor = new Floor();
     floor->addToWorld(dynamicsWorld);
 
-    skeleton = new Skeleton();
-    skeleton->addToWorld(dynamicsWorld);
-
 
     addObject(new Ball(0, 0, 1.5f, 0.4f, 1.0f));
 
@@ -71,8 +68,10 @@ World::~World()
 
     clearObjects();
 
-    skeleton->removeFromWorld(dynamicsWorld);
-    delete skeleton;
+    for (int i = 0; i < int(skeletons.size()); ++i) {
+        skeletons[i]->removeFromWorld(dynamicsWorld);
+        delete skeletons[i];
+    }
 
     floor->removeFromWorld(dynamicsWorld);
     delete floor;
@@ -103,7 +102,22 @@ void World::updateSkeleton()
         //static int f = 0;
         //if (++f >= 60) { f = 0; qDebug("%.3f %.3f %.3f %.3f\n", floorPlane.x, floorPlane.y, floorPlane.z, floorPlane.w); }
 
-        skeleton->update(current->frame);
+        int k = 0;
+        for (int i = 0; i < NUI_SKELETON_COUNT; ++i) {
+            if (current->frame.SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED) {
+                if (k >= int(skeletons.size())) {
+                    Skeleton* skeleton = new Skeleton();
+                    skeleton->addToWorld(dynamicsWorld);
+                    skeletons.push_back(skeleton);
+                }
+                skeletons[k++]->update(current->frame, i);
+            }
+        }
+
+        for (; k < int(skeletons.size()); ++k) {
+            skeletons[k]->update(current->frame, -1);
+  
+        }
     }
 }
 
@@ -158,8 +172,10 @@ void World::render3D(RenderManager& textures)
         }
 
         glColor3f(1.0f, 0.0f, 0.0f);
-        skeleton->render3D(textures);
-
+        for (int i = 0; i < int(skeletons.size()); ++i) {
+            skeletons[i]->render3D(textures);
+        }
+        
     mutex.unlock();
 }
 
@@ -173,6 +189,15 @@ void World::setSkeleton(const SkeletonFrame* skeleton)
 void World::addObject(Object* object)
 {
     mutex.lock();
+    object->addToWorld(dynamicsWorld);
+    objects.push_back(object);
+    mutex.unlock();
+}
+
+void World::addObjectOverHand(BasicObject* object)
+{
+    mutex.lock();
+    //object->motionState->
     object->addToWorld(dynamicsWorld);
     objects.push_back(object);
     mutex.unlock();

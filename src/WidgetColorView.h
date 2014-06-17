@@ -9,8 +9,8 @@
 #include "DataStream.h"
 #include "WidgetOpenGL.h"
 
-// Widget that shows the color frames provided by a stream.
-class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
+// Widget renderer that shows the color frames provided by a stream.
+class WidgetColorView : public RendererOpenGL
 {
     private:
         Ptr<DataStream> stream;
@@ -23,12 +23,7 @@ class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
         WidgetColorView(Ptr<DataStream> stream) :
             stream(stream)
         {
-            makeCurrent();
-            texture = RenderUtils::createTexture(ColorFrame::WIDTH, ColorFrame::HEIGHT);
 
-            stream->addNewFrameCallback(this, [this](const ColorFrame*, const DepthFrame*, const SkeletonFrame*) -> void {
-                emit this->triggerRefresh();
-            });
         }
 
         ~WidgetColorView()
@@ -39,6 +34,15 @@ class WidgetColorView : public WidgetOpenGL, public SubWindowWidget
         Ptr<DataStream> getStream() const override
         {
             return stream;
+        }
+
+        void initialize() override
+        {
+            texture = RenderUtils::createTexture(ColorFrame::WIDTH, ColorFrame::HEIGHT);
+
+            stream->addNewFrameCallback(this, [this](const ColorFrame*, const DepthFrame*, const SkeletonFrame*) -> void {
+                emit this->triggerRefresh();
+            });
         }
 
         bool render() override

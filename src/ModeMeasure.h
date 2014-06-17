@@ -24,11 +24,11 @@ class MeasureMode : public Mode
         }
 
 
-        void mousePressEvent(WidgetOpenGL* w, QMouseEvent* ev)
+        void mousePressEvent(RendererOpenGL* w, QMouseEvent* ev) override
         {
             if (w->is<WidgetDepthView>()) {
-                int x = (ev->x() * DepthFrame::WIDTH) / w->width();
-                int y = (ev->y() * DepthFrame::HEIGHT) / w->height();
+                int x = (ev->x() * DepthFrame::WIDTH) / w->getWidget()->width();
+                int y = (ev->y() * DepthFrame::HEIGHT) / w->getWidget()->height();
 
                 x = (x < 0) ? 0 : x;
                 x = (x >= DepthFrame::WIDTH) ? DepthFrame::WIDTH - 1 : x;
@@ -45,21 +45,6 @@ class MeasureMode : public Mode
             }
         }
 
-
-        void mouseReleaseEvent(WidgetOpenGL* w, QMouseEvent* ev)
-        {
-            if (w->is<WidgetDepthView>()) {
-
-            }
-        }
-
-
-        void moveEvent(WidgetOpenGL* w, QMoveEvent* ev)
-        {
-            if (w->is<WidgetDepthView>()) {
-
-            }
-        }
 };
 
 #endif

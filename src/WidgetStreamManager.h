@@ -15,7 +15,7 @@
 #include "Calibrator.h"
 
 // Shows a list of the currently open streams and allows operations on ordered subsets of them.
-class WidgetStreamManager : public QWidget, public SubWindowWidget
+class WidgetStreamManager : public QWidget, public SubWindowContent
 {
     Q_OBJECT
 

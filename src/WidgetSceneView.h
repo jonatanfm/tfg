@@ -11,10 +11,10 @@
 #include "DataStream.h"
 #include "WidgetOpenGL.h"
 
-// Widget implementing a 3D view of the scene.
+// Widget renderer implementing a 3D view of the scene.
 // When callibrated a set of cameras, will show their relative positions.
 // If Bullet support is enabled and a World is created, will render its virtual objects.
-class WidgetSceneView : public WidgetOpenGL, protected QGLFunctions, public SubWindowWidget
+class WidgetSceneView : public RendererOpenGL, protected QGLFunctions
 {
     private:
 
@@ -103,18 +103,16 @@ class WidgetSceneView : public WidgetOpenGL, protected QGLFunctions, public SubW
                     //qDebug() << QString::fromStdString(Utils::matToString<float>(calib[i].second.getTransformMatrix()));
                 }
             }
-
-            setFocusPolicy(Qt::StrongFocus);
-            resize(preferredWidth, preferredHeight);
         }
 
         virtual ~WidgetSceneView()
         {
             if (streams.size() > 0) streams[0]->removeNewFrameCallback(this);
-
-            makeCurrent();
             
             clearTrajectories();
+
+            getWidget()->makeCurrent();
+            renderManager.clear();
 
             gluDeleteQuadric(quadric);
         }
@@ -140,7 +138,7 @@ class WidgetSceneView : public WidgetOpenGL, protected QGLFunctions, public SubW
 
         bool render()
         {
-            float ratio = float(width()) / float(height());
+            float ratio = float(getWidget()->width()) / float(getWidget()->height());
 
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();

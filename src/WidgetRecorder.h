@@ -19,7 +19,7 @@ class MainWindow;
 class Recorder;
 
 // Widget that allows stream recording and single frame capturing.
-class WidgetRecorder : public QWidget, public SubWindowWidget
+class WidgetRecorder : public QWidget, public SubWindowContent
 {
     Q_OBJECT
 

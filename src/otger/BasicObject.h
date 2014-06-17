@@ -8,6 +8,8 @@
 
 class BasicObject : public Object
 {
+    friend class World;
+
     protected:
         btCollisionShape* shape;
         btRigidBody* rigidBody;

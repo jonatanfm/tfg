@@ -132,10 +132,20 @@ void MainWindow::setModeMeasure()
 }
 
 
-void MainWindow::addSubWindow(SubWindowWidget* widget, const QString& title)
+void MainWindow::addSubWindow(SubWindowContent* content, const QString& title)
 {
+    QWidget* widget = dynamic_cast<QWidget*>(content);
+    if (widget == nullptr) {
+        RendererOpenGL* r = dynamic_cast<RendererOpenGL*>(content);
+        if (r != nullptr) widget = new WidgetOpenGL(r);
+        else {
+            qDebug("Adding unexpected type SubWindow!");
+            return;
+        }
+    }
+
     SubWindow* win = new SubWindow(this);
-    win->setWidget(dynamic_cast<QWidget*>(widget));
+    win->setWidget(widget);
     win->setWindowTitle(title);
     win->setAttribute(Qt::WA_DeleteOnClose);
     //win->setWindowIcon(this->windowIcon());
@@ -143,27 +153,27 @@ void MainWindow::addSubWindow(SubWindowWidget* widget, const QString& title)
     win->show();
 }
 
-void MainWindow::toggleSkeletonsOverlay(WidgetOpenGL* widget)
+void MainWindow::toggleSkeletonsOverlay(RendererOpenGL* r)
 {
-    if (widget == nullptr) return;
+    if (r == nullptr) return;
 
-    if (widget->hasOverlay("skeleton")) {
-        widget->removeOverlay("skeleton");
+    if (r->hasOverlay("skeleton")) {
+        r->removeOverlay("skeleton");
     }
     else {
-        if (widget->is<WidgetColorView>()) {
-            widget->addOverlay("skeleton", [](WidgetOpenGL* w) -> bool {
+        if (r->is<WidgetColorView>()) {
+            r->addOverlay("skeleton", [](RendererOpenGL* r) -> bool {
                 SkeletonFrame skeleton;
-                if (((WidgetColorView*)w)->getStream()->getSkeletonFrame(skeleton)) {
+                if (((WidgetColorView*)r)->getStream()->getSkeletonFrame(skeleton)) {
                     RenderUtils::drawSkeletons(skeleton.frame, true);
                 }
                 return true;
             });
         }
-        else if (widget->is<WidgetDepthView>()) {
-            widget->addOverlay("skeleton", [](WidgetOpenGL* w) -> bool {
+        else if (r->is<WidgetDepthView>()) {
+            r->addOverlay("skeleton", [](RendererOpenGL* r) -> bool {
                 SkeletonFrame skeleton;
-                if (((WidgetDepthView*)w)->getStream()->getSkeletonFrame(skeleton)) {
+                if (((WidgetDepthView*)r)->getStream()->getSkeletonFrame(skeleton)) {
                     RenderUtils::drawSkeletons(skeleton.frame, false);
                 }
                 return true;
@@ -178,7 +188,8 @@ void MainWindow::setDrawSkeletons(bool draw)
     QMdiSubWindow* win = mdiArea->currentSubWindow();
     if (win == nullptr) return;
 
-    toggleSkeletonsOverlay(dynamic_cast<WidgetOpenGL*>(win->widget()));
+    WidgetOpenGL* w = dynamic_cast<WidgetOpenGL*>(win->widget());
+    if (w != nullptr) toggleSkeletonsOverlay(w->getRenderer());
 }
 
 void MainWindow::setSmoothSkeletons(bool smooth)
@@ -240,10 +251,10 @@ void MainWindow::changedSubwindow(QMdiSubWindow* win)
     }
 
     if (win != nullptr) {
-        SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(win->widget());
-        if (w != nullptr) {
+        SubWindowContent* c = dynamic_cast<SubWindowContent*>(win->widget());
+        if (c != nullptr) {
             int n = toolbar->actions().size();
-            w->createActions(toolbar);
+            c->createActions(toolbar);
             if (n < toolbar->actions().size()) toolbar->insertSeparator(toolbar->actions()[n]);
         }
     }
@@ -256,9 +267,10 @@ void MainWindow::updateToolbar()
 
     // Draw skeletons
     WidgetOpenGL* w = (win == nullptr) ? nullptr : dynamic_cast<WidgetOpenGL*>(win->widget());
-    if (w != nullptr && (w->is<WidgetColorView>() || w->is<WidgetDepthView>())) {
+    RendererOpenGL* r = (w == nullptr) ? nullptr : w->getRenderer();
+    if (r != nullptr && (r->is<WidgetColorView>() || r->is<WidgetDepthView>())) {
         actionDrawSkeleton->setEnabled(true);
-        actionDrawSkeleton->setChecked(w->hasOverlay("skeleton"));
+        actionDrawSkeleton->setChecked(r->hasOverlay("skeleton"));
     }
     else actionDrawSkeleton->setEnabled(false);
 
@@ -584,40 +596,29 @@ void MainWindow::skeletonWorking()
                                         tr("Enter mode to improve skeleton:\nWithout improvement: 0\nWith length check: 1\nWith recover losed data: 2\nRecover losed data and length check:3"), 0, 0, 5);
 
 
-		if(type==1 || type==3){
-			QFileDialog dialog(this);
-			dialog.setAcceptMode(QFileDialog::AcceptOpen);
-			dialog.setFileMode(QFileDialog::ExistingFiles);
-			dialog.setNameFilter("Skeleton tracked data (*.xls *.xlxs)");
-			if (dialog.exec()) {
-				QString tmp = dialog.selectedUrls().at(0).toEncoded();
-				QString delimiterPattern("///");
-				QStringList mailids = tmp.split(delimiterPattern);
-				tmp=mailids[1];
+        if(type==1 || type==3){
+            QFileDialog dialog(this);
+            dialog.setAcceptMode(QFileDialog::AcceptOpen);
+            dialog.setFileMode(QFileDialog::ExistingFiles);
+            dialog.setNameFilter("Skeleton tracked data (*.xls *.xlxs)");
+            if (dialog.exec()) {
+                QString tmp = dialog.selectedUrls().at(0).toEncoded();
+                QString delimiterPattern("///");
+                QStringList mailids = tmp.split(delimiterPattern);
+                tmp=mailids[1];
 
-				SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
-				if (w != nullptr) {
-					Ptr<DataStream> stream = w->getStream();
-					if (stream != nullptr) {
-
-						 addStream(new SkeletonStudy(stream,type,tmp));
-            
-					}
-				}
-			}
-		}
-		else{
-			SubWindowWidget* w = dynamic_cast<SubWindowWidget*>(mdiArea->currentSubWindow()->widget());
-				if (w != nullptr) {
-					Ptr<DataStream> stream = w->getStream();
-					if (stream != nullptr) {
-
-						 addStream(new SkeletonStudy(stream,type,""));
-
-            
-					}
-				}
-		}
+                Ptr<DataStream> stream = getCurrentStream();
+                if (stream != nullptr) {
+                        addStream(new SkeletonStudy(stream,type,tmp));
+                }
+            }
+        }
+        else{
+            Ptr<DataStream> stream = getCurrentStream();
+            if (stream != nullptr) {
+                addStream(new SkeletonStudy(stream,type,""));
+            }
+        }
 }
 
 void MainWindow::startOperation(Operation* op, std::function< void() > callback)
