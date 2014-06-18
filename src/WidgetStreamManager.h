@@ -131,11 +131,11 @@ class WidgetStreamManager : public QWidget, public SubWindowContent
                 for (int i = 0; i < selected.size(); ++i) {
                     calibrator->addStream(getStream(selected[i]));
 
-                    for (int j = 0; j < int(mainWindow.getStreams().size()); ++j) {
+                    /*for (int j = 0; j < int(mainWindow.getStreams().size()); ++j) {
                         if (getStreamPtr(selected[i]) == mainWindow.getStreams()[j]) {
                             qDebug() << "Selected: " << QString::number(j);
                         }
-                    }
+                    }*/
                 }
                 mainWindow.startOperation(calibrator);
                 list->clearSelection();

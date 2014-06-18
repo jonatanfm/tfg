@@ -52,7 +52,7 @@ World::World() :
     floor->addToWorld(dynamicsWorld);
 
 
-    addObject(new Ball(0, 0, 1.5f, 0.4f, 1.0f));
+    //addObject(new Ball(0, 0, 1.5f, 0.4f, 1.0f));
 
 
     running = true;

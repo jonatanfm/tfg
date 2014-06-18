@@ -288,7 +288,7 @@ void MainWindow::updateToolbar()
 
     actionPlayPause->setEnabled(isRecordedStream);
     actionRestart->setEnabled(isRecordedStream);
-    actionAdvance->setEnabled(isRecordedStream);
+    actionAdvance->setEnabled(isRecordedStream || (dynamic_cast<FixedFrameStream*>(stream.obj) != nullptr));
 
     if (isRecordedStream && !rs->isPaused()) {
         actionPlayPause->setIcon(iconPause);
@@ -325,6 +325,10 @@ void MainWindow::streamAdvance()
         if (!rs->isPaused()) rs->setPaused(true);
         rs->advance();
         updateToolbar();
+    }
+    else {
+        FixedFrameStream* ffs = dynamic_cast<FixedFrameStream*>(getCurrentStream().obj);
+        if (ffs != nullptr) ffs->relaunchFrame();
     }
 }
 
@@ -378,13 +382,13 @@ int MainWindow::addStream(const Ptr<DataStream>& stream)
         streams.push_back(stream);
     }
 
-    #ifdef HAS_BULLET
-        if (idx == 0 && stream->hasSkeleton()) {
-            stream.obj->addNewFrameCallback(&world, [this](const ColorFrame* color, const DepthFrame* depth, const SkeletonFrame* skeleton) -> void {
-                this->getWorld().setSkeleton(skeleton);
-            });
-        }
-    #endif
+#ifdef HAS_BULLET
+    if (idx == 0 && stream->hasSkeleton()) {
+        stream.obj->addNewFrameCallback(&world, [this](const ColorFrame* color, const DepthFrame* depth, const SkeletonFrame* skeleton) -> void {
+            this->getWorld().setSkeleton(skeleton);
+        });
+    }
+#endif
 
     openStreamWindows(idx);
 
@@ -462,7 +466,20 @@ void MainWindow::openDepthCorrector()
 {
     Ptr<DataStream> stream = getCurrentStream();
     if (stream != nullptr && stream->hasDepth()) {
-        addStream(new DepthCorrectorStream(stream));
+        QStringList items;
+        items << tr("Naive") << tr("Rings") << tr("Memory");
+
+        bool ok;
+        QString item = QInputDialog::getItem(this, tr("Choose algorithm"),
+            tr("Choose the depth correction algorithm:"), items, 0, false, &ok);
+        if (ok && !item.isEmpty()) {
+            for (int i = 0; i < items.size(); ++i) {
+                if (items[i] == item) {
+                    addStream(new DepthCorrectorStream(stream, i));
+                    break;
+                }
+            }
+        }
     }
 }
 

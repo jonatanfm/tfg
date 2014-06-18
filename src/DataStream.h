@@ -253,7 +253,7 @@ class DataStream : public cv::VideoCapture
         // by deleting the actual object when the thread has also stopped.
         virtual void performDelete()
         {
-            qDebug() << "Deleting Stream " << this;
+            //qDebug() << "Deleting Stream " << this;
             DataStream::deleting(this);
             delete this; // Commit suicide
         }

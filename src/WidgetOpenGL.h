@@ -204,7 +204,7 @@ class WidgetOpenGL : public QGLWidget, public SubWindowContent
             setSizePolicy(policy);*/
 
             if (async) {
-                qDebug("Started thread");
+                //qDebug("Started thread");
                 renderer->moveToThread(&rendererThread);
                 connect(&rendererThread, SIGNAL(started()), renderer, SLOT(start()));
                 doneCurrent();

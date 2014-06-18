@@ -27,6 +27,12 @@ class FixedFrameStream : public DataStream
         void setColorImage(cv::Mat& mat);
 
 
+        // Trigger manually a frame update, to refresh other views
+        void relaunchFrame()
+        {
+            callNewFrameCallbacks(colorFrame.get(), depthFrame.get(), skeletonFrame.get());
+        }
+
         std::string getName() const override
         {
             return name;

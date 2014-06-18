@@ -294,7 +294,7 @@ void WidgetRecorder::record()
         QString filenameTemplate = ui->txtFilename->text();
 
         std::string codec = ui->txtCodecColor->text().toStdString();
-        qDebug() << "Codec size " << codec.size();
+        //qDebug() << "Codec size " << codec.size();
         int colorCodec = (codec.size() == 4) ? CV_FOURCC(codec[0], codec[1], codec[2], codec[3]) : CV_FOURCC_PROMPT;
 
         codec = ui->txtCodecDepth->text().toStdString();
@@ -302,7 +302,7 @@ void WidgetRecorder::record()
 
         QString timestamp = QString::number(QDateTime::currentMSecsSinceEpoch() / 1000);
 
-        KinectManager& k = mainWindow.getKinectManager();
+        auto& streams = mainWindow.getStreams();
 
         std::vector<RecordTargets> recordTargets;
         
@@ -312,7 +312,8 @@ void WidgetRecorder::record()
                 QString str = item->text();
                 int device = str.at(7).toLatin1() - '0' - 1; 
 
-                Ptr<KinectStream> stream = k.getStream(device);
+                
+                Ptr<KinectStream> stream = streams[device];
 
                 if (stream != nullptr) {
                     size_t j;
@@ -393,7 +394,7 @@ void WidgetRecorder::captureFrame()
     QString filenameTemplate = ui->txtFilename->text();
     QString timestamp = QString::number(QDateTime::currentMSecsSinceEpoch() / 1000);
 
-    KinectManager& k = mainWindow.getKinectManager();
+    auto& streams = mainWindow.getStreams();
 
     for (int i = 0; i < ui->list->count(); ++i) {
         QListWidgetItem* item = ui->list->item(i);
@@ -401,7 +402,7 @@ void WidgetRecorder::captureFrame()
             QString str = item->text();
             int device = str.at(7).toLatin1() - '0' - 1;
 
-            Ptr<KinectStream> stream = k.getStream(device);
+            Ptr<DataStream> stream = streams[device];
 
             QString type;
             if (str.endsWith("Skeleton")) type = "skeleton";
@@ -471,11 +472,11 @@ void WidgetRecorder::updateStreamList()
 {
     ui->list->clear();
 
-    KinectManager& k = mainWindow.getKinectManager();
-    for (int i = 0; i < k.getSensorCount(); ++i) if (k.getStream(i) != nullptr) {
-        addListItem(ui->list, "Kinect " + QString::number(i + 1) + " - Color");
-        addListItem(ui->list, "Kinect " + QString::number(i + 1) + " - Depth");
-        addListItem(ui->list, "Kinect " + QString::number(i + 1) + " - Skeleton");
+    auto& streams = mainWindow.getStreams();
+    for (size_t i = 0; i < streams.size(); ++i) if (streams[i] != nullptr) {
+        addListItem(ui->list, "Stream " + QString::number(i + 1) + " - Color");
+        addListItem(ui->list, "Stream " + QString::number(i + 1) + " - Depth");
+        addListItem(ui->list, "Stream " + QString::number(i + 1) + " - Skeleton");
     }
 }
 

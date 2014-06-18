@@ -40,13 +40,13 @@ class Cube : public BasicObject
             glColor3f(1.0f, 1.0f, 1.0f);
             glEnable(GL_TEXTURE_2D);
 
-            manager.gl.glActiveTexture(GL_TEXTURE0);
+            //manager.gl.glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, manager.getTexture("crate2.jpg"));
 
-            manager.gl.glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, manager.getTexture("crate2Normal.jpg"));
+            //manager.gl.glActiveTexture(GL_TEXTURE1);
+            //glBindTexture(GL_TEXTURE_2D, manager.getTexture("crate2Normal.jpg"));
 
-            manager.gl.glActiveTexture(GL_TEXTURE0);
+            //manager.gl.glActiveTexture(GL_TEXTURE0);
 
             
             //QGLShaderProgram* shader = manager.getShader(SHADER_NORMALMAP_VERTEX, SHADER_NORMALMAP_FRAGMENT);
@@ -54,7 +54,7 @@ class Cube : public BasicObject
 
             glPushMatrix();
                 glMultMatrixf(transform);
-                btVector3 he = ((btBoxShape*)shape)->getHalfExtentsWithoutMargin();
+                btVector3 he = ((btBoxShape*)shape)->getHalfExtentsWithMargin();
                 RenderUtils::drawCube(he.x(), he.y(), he.z());
             glPopMatrix();
 

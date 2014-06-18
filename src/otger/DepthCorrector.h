@@ -8,21 +8,52 @@
 #include "../AsyncStream.h"
 
 
-class DepthCorrector
+// Base class for depth correction algorithms
+// (They operate like Functors)
+class DepthCorrectionAlgorithm
 {
-    private:
-        DepthCorrector();
-
+    protected:
         static const int MIN_DEPTH = DepthFrame::MIN_DEPTH;
         static const int MAX_DEPTH = DepthFrame::MAX_DEPTH;
 
     public:
-        // Implementations of different methods
+        DepthCorrectionAlgorithm() { }
+        virtual ~DepthCorrectionAlgorithm() { }
 
-        static void correctDepthFrame_Naive(const DepthFrame& source, DepthFrame& target);
-        static void correctDepthFrame_Memory(const DepthFrame& source, DepthFrame& target);
-        static void correctDepthFrame_Rings(const DepthFrame& source, DepthFrame& target);
+        virtual void correct(const DepthFrame& source, DepthFrame& target) = 0;
 
+        inline void operator()(const DepthFrame& source, DepthFrame& target)
+        {
+            correct(source, target);
+        }
+
+};
+
+
+class DepthCorrectionAlgorithm_Naive : public DepthCorrectionAlgorithm
+{
+    public:
+        void correct(const DepthFrame& source, DepthFrame& target) override;
+};
+
+class DepthCorrectionAlgorithm_Rings : public DepthCorrectionAlgorithm
+{
+    public:
+        void correct(const DepthFrame& source, DepthFrame& target) override;
+};
+
+class DepthCorrectionAlgorithm_Memory: public DepthCorrectionAlgorithm
+{
+    private:
+        DepthFrame memoryFrame;
+
+    public:
+        DepthCorrectionAlgorithm_Memory()
+        {
+            memoryFrame.clear();
+        }
+
+        void correct(const DepthFrame& source, DepthFrame& target) override;
 };
 
 
@@ -32,12 +63,23 @@ class DepthCorrectorStream : public AsyncStream
     private:
         Ptr<DataStream> base; // The depth frame source stream.
 
+        unique_ptr<DepthCorrectionAlgorithm> corrector;
+
     public:
 
-        DepthCorrectorStream(Ptr<DataStream> baseStream) :
-            base(baseStream)
+        DepthCorrectorStream(Ptr<DataStream> baseStream, int algorithm = 0) :
+            base(baseStream),
+            corrector()
         {
             depthFrame = new DepthFrame();
+
+            DepthCorrectionAlgorithm* alg;
+            switch (algorithm) {
+                case 1: alg = new DepthCorrectionAlgorithm_Rings(); break;
+                case 2: alg = new DepthCorrectionAlgorithm_Memory(); break;
+                default: alg = new DepthCorrectionAlgorithm_Naive(); break;
+            }
+            corrector.reset(alg);
 
             start();
         }
@@ -60,7 +102,7 @@ class DepthCorrectorStream : public AsyncStream
             {
                 base->waitForFrame(nullptr, input, nullptr);
     
-                correctDepthFrame(*input, *output);
+                corrector->correct(*input, *output);
 
                 pushFrame(nullptr, output, nullptr);
             }

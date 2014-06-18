@@ -192,7 +192,7 @@ class SkeletonIO
         // Opens the given file for writing skeleton frame(s). Returns true on success.
         bool openFileForWriting(const char* filename)
         {
-            qDebug() << "Opening " << QString(filename);
+            //qDebug() << "Opening " << QString(filename);
             file = fopen(filename, "wb");
             if (file == nullptr) return false;
 
@@ -220,9 +220,10 @@ class SkeletonIO
             ++numFrames;
         }
 
-		bool hasFinished() const {
-			return currentFrame >=numFrames;
-		}
+        bool hasFinished() const
+        {
+            return currentFrame >= numFrames;
+        }
 };
 
 #endif

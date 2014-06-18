@@ -1,8 +1,6 @@
 
 #include "WidgetAugmentedView.h"
 
-#include "DepthCorrector.h"
-
 #include "../RenderUtils.h"
 
 #include "../MainWindow.h"
@@ -26,9 +24,9 @@ WidgetAugmentedView::WidgetAugmentedView(Ptr<DataStream> stream, World& world) :
     world(world),
     stream(stream),
     renderManager(*this),
-    depthCorrectionMethod(1)
+    depthCorrectionMethod(0)
 {
-
+    nextDepthCorrectionMethod();
 }
 
 WidgetAugmentedView::~WidgetAugmentedView()
@@ -91,6 +89,14 @@ void WidgetAugmentedView::initialize()
 void WidgetAugmentedView::nextDepthCorrectionMethod()
 {
     depthCorrectionMethod = (depthCorrectionMethod + 1) % 4;
+
+    DepthCorrectionAlgorithm* alg = nullptr;
+    switch (depthCorrectionMethod) {
+        case 1: alg = new DepthCorrectionAlgorithm_Naive(); break;
+        case 2: alg = new DepthCorrectionAlgorithm_Rings(); break;
+        case 3: alg = new DepthCorrectionAlgorithm_Memory(); break;
+    }
+    depthCorrector.reset(alg);
 }
 
 bool WidgetAugmentedView::render()
@@ -99,13 +105,9 @@ bool WidgetAugmentedView::render()
     stream->getColorFrame(colorFrame);
     stream->getDepthFrame(depthFrame);
 
-    switch (depthCorrectionMethod)
-    {
-        case 0: depthBuffer = depthFrame; break;
-        case 1: DepthCorrector::correctDepthFrame_Naive(depthFrame, depthBuffer); break;
-        case 2: DepthCorrector::correctDepthFrame_Memory(depthFrame, depthBuffer); break;
-        case 3: DepthCorrector::correctDepthFrame_Rings(depthFrame, depthBuffer);  break;
-    }
+    // Correct the depth map
+    if (depthCorrector == nullptr) depthBuffer = depthFrame;
+    else depthCorrector->correct(depthFrame, depthBuffer);
 
     // Setup perspective
     glMatrixMode(GL_PROJECTION);
@@ -187,12 +189,13 @@ bool WidgetAugmentedView::render()
     glScalef(1.0f, 1.0f, -1.0f); // Invert Z axis so that +Z is in front of the camera
 
     // A plane to test occlusion
+    /*glColor3f(0.0f, 1.0f, 0.0f);
     glBegin(GL_TRIANGLE_STRIP);
         glVertex3f(-0.5f, -0.5f, 0.5f);
-        glVertex3f(-0.5f, 0.5f, 3.0f);
-        glVertex3f(0.5f, -0.5f, 3.0f);
-        glVertex3f(0.5f, 0.5f, 5.5f);
-    glEnd();
+        glVertex3f(-0.5f, 0.5f, 2.5f);
+        glVertex3f(0.5f, -0.5f, 2.5f);
+        glVertex3f(0.5f, 0.5f, 4.5f);
+    glEnd();*/
 
     glEnable(GL_LIGHTING);
 

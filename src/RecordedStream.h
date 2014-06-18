@@ -81,9 +81,14 @@ class RecordedStream : public AsyncStream
             return !skeletonFile.empty();
         }
 
+        // Returns true if there are no frames left
         bool hasFinished()
         {
-            return skeletonReader.hasFinished();
+            bool open = false;
+            if (!colorFile.empty()) open = open || colorVideo.isOpened();
+            if (!depthFile.empty()) open = open || depthVideo.isOpened();
+            if (!skeletonFile.empty()) open = open || !skeletonReader.hasFinished();
+            return !open;
         }
 
     private:

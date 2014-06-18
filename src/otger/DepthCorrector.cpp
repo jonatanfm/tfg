@@ -2,7 +2,7 @@
 #include "DepthCorrector.h"
 
 
-void DepthCorrector::correctDepthFrame_Naive(const DepthFrame& source, DepthFrame& target)
+void DepthCorrectionAlgorithm_Naive::correct(const DepthFrame& source, DepthFrame& target)
 {
     target = source;
     DepthPixel* pixels = target.pixels;
@@ -30,17 +30,11 @@ void DepthCorrector::correctDepthFrame_Naive(const DepthFrame& source, DepthFram
     }
 }
 
-void DepthCorrector::correctDepthFrame_Memory(const DepthFrame& source, DepthFrame& target)
+void DepthCorrectionAlgorithm_Memory::correct(const DepthFrame& source, DepthFrame& target)
 {
-    static DepthFrame* memoryFrame = nullptr;
-    if (memoryFrame == nullptr) {
-        memoryFrame = new DepthFrame();
-        memoryFrame->clear();
-    }
-
     target = source;
     DepthPixel* pixels = target.pixels;
-    DepthPixel* memory = memoryFrame->pixels;
+    DepthPixel* memory = memoryFrame.pixels;
     for (int c = 0; c < DepthFrame::HEIGHT * DepthFrame::WIDTH; ++c) {
         unsigned short depth = pixels[c].depth;
         depth = (depth < MIN_DEPTH && depth != 0) ? MIN_DEPTH : depth;
@@ -60,7 +54,7 @@ void DepthCorrector::correctDepthFrame_Memory(const DepthFrame& source, DepthFra
     }
 }
 
-void DepthCorrector::correctDepthFrame_Rings(const DepthFrame& source, DepthFrame& target)
+void DepthCorrectionAlgorithm_Rings::correct(const DepthFrame& source, DepthFrame& target)
 {
     const DepthPixel* src = source.pixels;
     DepthPixel* dest = target.pixels;
@@ -129,8 +123,3 @@ void DepthCorrector::correctDepthFrame_Rings(const DepthFrame& source, DepthFram
     }
 }
 
-
-void DepthCorrectorStream::correctDepthFrame(const DepthFrame& source, DepthFrame& target)
-{
-    DepthCorrector::correctDepthFrame_Memory(source, target);
-}

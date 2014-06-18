@@ -264,7 +264,7 @@ class AsyncStream : private QThread, public DataStream
         // When no references are left, DataStream::performDelete() is called, which deletes the object.
         virtual void performDelete() override
         {
-            qDebug() << "Attempting delete of " << this;
+            //qDebug() << "Attempting delete of " << this;
             stop();
             if (CV_XADD(&refs, -1) <= 1) DataStream::performDelete();
         }

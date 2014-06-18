@@ -10,6 +10,8 @@
 
 #include "../MainWindow.h"
 
+#include "DepthCorrector.h"
+
 #include <QGLShaderProgram>
 
 class MainWindow;
@@ -42,7 +44,11 @@ class WidgetAugmentedView : public RendererOpenGL, protected QGLFunctions
         // Textures and shaders cache
         RenderManager renderManager;
 
+        // Current depth correction algorithm index
         int depthCorrectionMethod;
+
+        // Current depth correction algorithm
+        unique_ptr<DepthCorrectionAlgorithm> depthCorrector;
 
         // Shaders
         QGLShaderProgram shaderDefault, shader2D, shaderNormalMap;

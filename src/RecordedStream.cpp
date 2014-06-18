@@ -60,7 +60,7 @@ static const int FPS = 30;
 
 void RecordedStream::stream()
 {
-    qDebug("[RecordedStream] Thread started");
+    //qDebug("[RecordedStream] Thread started");
 
     ColorFrame* color;
     DepthFrame* depth;
@@ -108,5 +108,5 @@ void RecordedStream::stream()
         pushFrame(color, depth, skeleton);
     }
 
-    qDebug("[RecordedStream] Thread exited");
+    //qDebug("[RecordedStream] Thread exited");
 }

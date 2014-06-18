@@ -46,6 +46,7 @@ FixedFrameStream::FixedFrameStream(const std::string& colorFile, const std::stri
 
 bool FixedFrameStream::waitForFrame(ColorFrame* colorFrame, DepthFrame* depthFrame, SkeletonFrame* skeletonFrame, FrameNum* frameNum)
 {
+    QThread::msleep(10);
     if (colorFrame != nullptr) *colorFrame = *this->colorFrame;
     if (depthFrame != nullptr) *depthFrame = *this->depthFrame;
     if (skeletonFrame != nullptr) *skeletonFrame = *this->skeletonFrame;

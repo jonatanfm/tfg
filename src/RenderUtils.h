@@ -149,7 +149,7 @@ class RenderManager
             auto it = textures.find(file);
             if (it != textures.end()) return it->second;
 
-            cv::Mat img = cv::imread(file);
+            cv::Mat img = cv::imread(std::string("../res/textures/") + file);
             Texture tex = RenderUtils::createTexture(img);
             textures[file] = tex;
             return tex;

@@ -327,7 +327,7 @@ void KinectStream::updateInteractions()
                         case NUI_HANDPOINTER_STATE_PRIMARY_FOR_USER: s3 = "STATE_PRIMARY_FOR_USER"; break;
                     };
 
-                    qDebug() << "Skeleton [" << frame.UserInfos[i].SkeletonTrackingId << "]" << s1 << " " << s2 << " " << s3;
+                    //qDebug() << "Skeleton [" << frame.UserInfos[i].SkeletonTrackingId << "]" << s1 << " " << s2 << " " << s3;
                 }
             }
             
@@ -337,7 +337,7 @@ void KinectStream::updateInteractions()
 
 void KinectStream::stream()
 {
-    qDebug("[KinectStream] Thread started");
+    //qDebug("[KinectStream] Thread started");
     HRESULT hr;
     while ((hr = WaitForSingleObject(hEvent, INFINITE)) == WAIT_OBJECT_0) {
         if (stopping) break;
@@ -355,10 +355,10 @@ void KinectStream::stream()
         pushFrame(&colorBuffer, &depthBuffer, &skeletonBuffer);
     }
 
-    if (hr == WAIT_FAILED) {
+    /*if (hr == WAIT_FAILED) {
         qDebug("[KinectStream] Thread exited - wait failed with code %d", GetLastError());
     }
-    else qDebug("[KinectStream] Thread exited with %d", hr);
+    else qDebug("[KinectStream] Thread exited with %d", hr);*/
 }
 
 
